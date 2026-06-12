@@ -46,22 +46,33 @@ function AuthCard() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    const err = mode === 'signup' ? await signup(name, email, password) : await login(email, password)
+    setNotice(null)
+    const result = mode === 'signup' ? await signup(name, email, password) : await login(email, password)
     setSubmitting(false)
-    setError(err)
-    if (!err) navigate(state ? '/dashboard' : '/onboarding')
+    if (result === 'CONFIRM_EMAIL') {
+      setError(null)
+      setNotice(`Check your email - we sent a confirmation link to ${email}. Click it, then log in here.`)
+      return
+    }
+    // Map Supabase's unconfirmed-email error to friendlier copy
+    const mappedError = result === 'Email not confirmed'
+      ? "You haven't confirmed your email yet. Check your inbox for the link we sent."
+      : result
+    setError(mappedError)
+    if (!mappedError) navigate(state ? '/dashboard' : '/onboarding')
   }
 
   const inputCls =
     'w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-sm text-white placeholder-emerald-100/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white/15 transition-colors'
 
   return (
-    <div className="w-full max-w-md rounded-3xl bg-white/8 backdrop-blur-xl border border-white/15 shadow-2xl p-7 animate-pop" style={{ animationDelay: '0.15s' }}>
+    <div className="w-full max-w-md rounded-3xl bg-white/8 backdrop-blur-xl border border-white/15 shadow-2xl p-8 animate-pop" style={{ animationDelay: '0.15s' }}>
       <div className="flex rounded-xl bg-white/10 p-1">
         {(['signup', 'login'] as const).map((m) => (
           <button
@@ -82,7 +93,7 @@ function AuthCard() {
       </h2>
       <p className="mt-1 text-sm text-emerald-100/60">
         {mode === 'signup'
-          ? 'Free forever. No bank logins. Your numbers never leave this browser.'
+          ? 'Free forever. No bank logins. Your data is stored securely in your account, never sold or shared.'
           : 'Your coach kept your seat warm.'}
       </p>
 
@@ -99,6 +110,9 @@ function AuthCard() {
           autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           className={inputCls}
         />
+        {notice && (
+          <p className="text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-400/20 rounded-lg px-3 py-2">{notice}</p>
+        )}
         {error && (
           <p className="text-sm text-rose-300 bg-rose-500/10 border border-rose-400/20 rounded-lg px-3 py-2">{error}</p>
         )}
@@ -180,7 +194,7 @@ export default function Landing() {
           <div className="animate-fade-up mt-6 flex flex-wrap gap-x-3 gap-y-2 text-sm text-emerald-100/50" style={{ animationDelay: '0.24s' }}>
             <span>2-min setup</span>
             <span aria-hidden="true">·</span>
-            <span>100% private</span>
+            <span>Private by default</span>
             <span aria-hidden="true">·</span>
             <span>No bank logins</span>
             <span aria-hidden="true">·</span>

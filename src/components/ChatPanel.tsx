@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Profile } from '../types'
 import type { CoachAdapter } from '../lib/coach/adapter'
+import { SendIcon } from './icons'
 
 /** Minimal renderer for the coach's **bold** + paragraph + bullet formatting. */
 function CoachText({ text }: { text: string }) {
@@ -94,7 +95,7 @@ export default function ChatPanel({ profile, coach, starters = [], initialMessag
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === 'user'
                   ? 'bg-brand text-on-brand rounded-br-sm'
-                  : 'bg-surface-2 text-ink rounded-bl-sm'
+                  : 'bg-brand-soft border border-brand-line/60 text-ink rounded-bl-sm'
               }`}
             >
               {m.role === 'coach' ? <CoachText text={m.text} /> : m.text}
@@ -117,7 +118,7 @@ export default function ChatPanel({ profile, coach, starters = [], initialMessag
         )}
         {thinking && (
           <div className="flex justify-start">
-            <div className="bg-surface-2 rounded-2xl rounded-bl-sm px-4 py-3 text-ink-faint text-sm">
+            <div className="bg-brand-soft border border-brand-line/60 rounded-2xl rounded-bl-sm px-4 py-3 text-ink-faint text-sm">
               <span className="animate-pulse">delphi is thinking…</span>
             </div>
           </div>
@@ -129,14 +130,15 @@ export default function ChatPanel({ profile, coach, starters = [], initialMessag
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about your budget, debt, goals, extra cash…"
-          className="flex-1 rounded-xl border border-line-strong px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+          className="flex-1 rounded-2xl border border-line-strong bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors duration-150"
         />
         <button
           type="submit"
           disabled={thinking || !input.trim()}
-          className="rounded-xl bg-brand text-on-brand px-4 py-2 text-sm font-medium disabled:opacity-40 hover:bg-brand-strong transition-colors"
+          aria-label="Send message"
+          className="rounded-2xl bg-brand text-on-brand px-4 py-2.5 flex items-center justify-center disabled:opacity-40 hover:bg-brand-strong active:scale-95 transition-all duration-150"
         >
-          Send
+          <SendIcon className="w-4 h-4" />
         </button>
       </form>
     </div>

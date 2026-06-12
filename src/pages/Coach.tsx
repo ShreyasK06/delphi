@@ -27,7 +27,7 @@ export default function Coach() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Delphi</h1>
+        <h1 className="text-2xl font-bold text-ink">Coach</h1>
         <p className="text-sm text-ink-faint">
           Your financial coach. Ask anything about budgeting, credit, investing, student discounts,
           or your goals. Every answer is grounded in your actual numbers.
@@ -48,7 +48,7 @@ export default function Coach() {
       )}
 
       <p className="text-xs text-ink-faint">
-        Delphi is an educational tool, not a licensed financial advisor. For major investment or
+        This is an educational tool, not a licensed financial advisor. For major investment or
         tax decisions, talk to a fiduciary advisor or your school's financial wellness center.
       </p>
     </div>

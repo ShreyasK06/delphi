@@ -26,7 +26,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
-  const { state } = useProfile()
+  const { state, loading } = useProfile()
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-canvas">
+      <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+    </div>
+  )
   if (!state) return <Navigate to="/onboarding" replace />
   return <>{children}</>
 }

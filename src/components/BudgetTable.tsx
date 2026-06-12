@@ -19,13 +19,26 @@ function Row({ row, goodWhenHigh = false }: { row: BudgetRow; goodWhenHigh?: boo
     goodWhenHigh && row.status === 'under'
       ? { cls: 'bg-warn-soft text-warn-ink', label: 'Below target' }
       : { cls: statusStyles[row.status], label: statusLabel[row.status] }
+  const pctOfTarget = row.target > 0 ? Math.min(row.actual / row.target, 1.5) : 0
+  const barCls =
+    goodWhenHigh
+      ? row.status === 'under' ? 'bg-warn' : 'bg-ok'
+      : row.status === 'over' ? 'bg-bad' : row.status === 'under' ? 'bg-info' : 'bg-ok'
   return (
     <tr className="border-t border-line">
-      <td className="py-2.5 pr-3 text-ink-mid">{row.label}</td>
-      <td className="py-2.5 pr-3 text-right font-medium text-ink">{fmtMoney(row.actual)}</td>
-      <td className="py-2.5 pr-3 text-right text-ink-faint">{fmtMoney(row.target)}</td>
-      <td className="py-2.5 pr-3 text-right text-ink-faint">{Math.round(row.share * 100)}%</td>
-      <td className="py-2.5 text-right">
+      <td className="py-3 pr-3 text-ink-mid">
+        {row.label}
+        <div className="mt-1.5 h-1 w-full max-w-[8rem] rounded-full bg-surface-2 overflow-hidden">
+          <div
+            className={`h-full rounded-full ${barCls} transition-all duration-300`}
+            style={{ width: `${Math.max(Math.min((pctOfTarget / 1.5) * 100, 100), 3)}%` }}
+          />
+        </div>
+      </td>
+      <td className="py-3 pr-3 text-right font-medium text-ink tabular-nums">{fmtMoney(row.actual)}</td>
+      <td className="py-3 pr-3 text-right text-ink-faint tabular-nums">{fmtMoney(row.target)}</td>
+      <td className="py-3 pr-3 text-right text-ink-faint tabular-nums">{Math.round(row.share * 100)}%</td>
+      <td className="py-3 text-right">
         <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${display.cls}`}>
           {display.label}
         </span>
@@ -41,7 +54,7 @@ export default function BudgetTable({ budget, detailed = false }: { budget: Budg
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">
           {detailed ? 'Category detail' : 'Monthly budget, 50/30/20, college edition'}
         </h2>
-        <span className={`text-sm font-medium ${budget.leftover >= 0 ? 'text-ok' : 'text-bad'}`}>
+        <span className={`text-sm font-medium tabular-nums ${budget.leftover >= 0 ? 'text-ok' : 'text-bad'}`}>
           {budget.leftover >= 0
             ? `${fmtMoney(budget.leftover)} left each month`
             : `${fmtMoney(-budget.leftover)} over budget`}
@@ -69,6 +82,11 @@ export default function BudgetTable({ budget, detailed = false }: { budget: Budg
           )}
         </tbody>
       </table>
+      {detailed && (
+        <p className="mt-3 text-xs text-ink-faint">
+          Rent and utilities are mostly fixed. Food, going out, and subscriptions are where month-to-month changes actually happen.
+        </p>
+      )}
     </div>
   )
 }
