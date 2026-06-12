@@ -100,6 +100,17 @@ export default function Layout() {
     navigate('/')
   }
 
+  const [syncError, setSyncError] = useState(false)
+
+  useEffect(() => {
+    const handler = () => {
+      setSyncError(true)
+      setTimeout(() => setSyncError(false), 4000)
+    }
+    window.addEventListener('delphi:sync-error', handler)
+    return () => window.removeEventListener('delphi:sync-error', handler)
+  }, [])
+
   return (
     <div className="min-h-screen relative">
       {/* static ambient tint so the glass sidebar has something to blur */}
@@ -192,6 +203,16 @@ export default function Layout() {
 
       <CoachWidget />
       <BackToTop />
+      {syncError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed bottom-20 right-6 z-50 flex items-center gap-2 rounded-xl bg-surface border border-[var(--color-warn)] shadow-lg px-4 py-3 text-sm text-ink animate-pop"
+        >
+          <span style={{ color: 'var(--color-warn)' }}>⚠</span>
+          Sync failed. Changes saved locally.
+        </div>
+      )}
     </div>
   )
 }
