@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* Semantic tokens — see STYLEGUIDE.md. light-dark() makes dark mode follow the OS. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: light-dark(#f5f8f6, #0c1311);
+  --color-surface: light-dark(#ffffff, #161f1c);
+  --color-surface-2: light-dark(#edf2ef, #1f2b27);
+  --color-ink: light-dark(#16201c, #e8efec);
+  --color-ink-mid: light-dark(#4d5e57, #a4b6af);
+  --color-ink-faint: light-dark(#79897f, #74857d);
+  --color-line: light-dark(#e2e9e5, #2a3833);
+  --color-line-strong: light-dark(#c7d2cc, #3c4f48);
+
+  --color-brand: light-dark(#059669, #34d399);
+  --color-brand-strong: light-dark(#047857, #6ee7b7);
+  --color-brand-soft: light-dark(#e7f5ee, #11241f);
+  --color-brand-line: light-dark(#c4e8d6, #1e4236);
+  --color-brand-ink: light-dark(#065f46, #a7f3d0);
+  --color-on-brand: light-dark(#ffffff, #04231c);
+
+  --color-ok: light-dark(#059669, #34d399);
+  --color-ok-soft: light-dark(#e3f5ec, #10291f);
+  --color-ok-line: light-dark(#bfe5d2, #1d4634);
+  --color-ok-ink: light-dark(#065f46, #a7f3d0);
+
+  --color-warn: light-dark(#d97706, #fbbf24);
+  --color-warn-soft: light-dark(#fdf3df, #2a2108);
+  --color-warn-line: light-dark(#f3deac, #4a3a0c);
+  --color-warn-ink: light-dark(#92400e, #fcd34d);
+
+  --color-bad: light-dark(#e11d48, #fb7185);
+  --color-bad-soft: light-dark(#fdeef1, #2c1218);
+  --color-bad-line: light-dark(#f7ccd5, #4d1f2a);
+  --color-bad-ink: light-dark(#9f1239, #fda4af);
+
+  --color-info: light-dark(#0284c7, #38bdf8);
+  --color-info-soft: light-dark(#e9f4fb, #0c2433);
+  --color-info-line: light-dark(#bfe0f2, #164861);
+  --color-info-ink: light-dark(#075985, #7dd3fc);
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pop: pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-delayed: float 7.5s ease-in-out 1.2s infinite;
+  --animate-float-slow: float 9s ease-in-out 0.6s infinite;
+  --animate-blob: blob 18s ease-in-out infinite;
+  --animate-blob-slow: blob 26s ease-in-out 4s infinite;
+  --animate-marquee: marquee 28s linear infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  /* looping keyframes below are licensed for the landing page only, per STYLEGUIDE.md */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+  @keyframes blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(50px, -40px) scale(1.12); }
+    66% { transform: translate(-40px, 30px) scale(0.94); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-canvas text-ink antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* static gradient headline text for brand chrome (landing/onboarding) */
+.text-gradient {
+  background-image: linear-gradient(90deg, #6ee7b7, #2dd4bf, #a7f3d0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
