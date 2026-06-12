@@ -185,7 +185,7 @@ export default function Goals() {
                 >
                   <cfg.icon className="w-4 h-4 text-brand" />
                   <div className="mt-2 font-medium text-sm text-ink">{t.name}</div>
-                  <div className="text-xs text-ink-faint mt-0.5">{fmtMoney(t.amount)} in {t.months} months</div>
+                  <div className="text-xs text-ink-faint mt-0.5">{t.type === 'credit' ? `${t.amount} score` : fmtMoney(t.amount)} in {t.months} months</div>
                   <div className="mt-2 text-xs text-brand font-medium">Use template</div>
                 </button>
               )
@@ -204,7 +204,7 @@ export default function Goals() {
           const cfg = goalTypes[(g as unknown as Record<string, unknown>)['type'] as GoalType] ?? goalTypes.savings
 
           return (
-            <div key={g.id} className="bg-surface rounded-2xl border border-line overflow-hidden">
+            <div key={g.id} className="bg-surface rounded-2xl border border-line overflow-hidden hover:border-brand/50 transition-colors duration-150">
               {/* Card header */}
               <div className="p-6 cursor-pointer" onClick={() => toggleExpand(g.id)}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -214,7 +214,7 @@ export default function Goals() {
                     </div>
                     <div>
                       <h2 className="font-bold text-ink leading-tight">{g.name}</h2>
-                      <p className="text-xs text-ink-faint">{cfg.label} · {fmtMoney(g.amount)} by {g.by}</p>
+                      <p className="text-xs text-ink-faint">{cfg.label} · {(g as unknown as Record<string, unknown>)['type'] === 'credit' ? `${g.amount} score` : fmtMoney(g.amount)} by {g.by}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -242,9 +242,18 @@ export default function Goals() {
                     style={{ width: `${Math.max(plan.progressPct, 2)}%` }}
                   />
                 </div>
-                <div className="mt-1.5 flex justify-between text-xs text-ink-faint">
-                  <span>{fmtMoney(g.saved)} saved ({Math.round(plan.progressPct)}%)</span>
-                  <span>{plan.remaining > 0 ? `${fmtMoney(plan.remaining)} to go` : 'Goal reached'}</span>
+                <div className="mt-1.5 flex justify-between text-xs text-ink-faint tabular-nums">
+                  {(g as unknown as Record<string, unknown>)['type'] === 'credit' ? (
+                    <>
+                      <span>{g.saved} saved ({Math.round(plan.progressPct)}%)</span>
+                      <span>{plan.remaining > 0 ? `${plan.remaining} to go` : 'Goal reached'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{fmtMoney(g.saved)} saved ({Math.round(plan.progressPct)}%)</span>
+                      <span>{plan.remaining > 0 ? `${fmtMoney(plan.remaining)} to go` : 'Goal reached'}</span>
+                    </>
+                  )}
                 </div>
                 {milestone && <p className="mt-2 text-sm text-ok-ink">{milestone}</p>}
               </div>
@@ -276,15 +285,15 @@ export default function Goals() {
                             <div className="text-xs uppercase tracking-wide text-ink-faint mb-3">Pace needed to hit target</div>
                             <div className="flex flex-wrap gap-5">
                               <div>
-                                <div className="text-xl font-bold text-ink">{fmtMoney(plan.monthlyNeeded)}</div>
+                                <div className="font-display text-2xl font-bold text-ink tabular-nums">{fmtMoney(plan.monthlyNeeded)}</div>
                                 <div className="text-xs text-ink-faint">per month</div>
                               </div>
                               <div>
-                                <div className="text-xl font-bold text-ink">{fmtMoney(plan.weeklyNeeded)}</div>
+                                <div className="font-display text-2xl font-bold text-ink tabular-nums">{fmtMoney(plan.weeklyNeeded)}</div>
                                 <div className="text-xs text-ink-faint">per week</div>
                               </div>
                               <div>
-                                <div className="text-xl font-bold text-ink">{plan.monthsLeft}</div>
+                                <div className="font-display text-2xl font-bold text-ink tabular-nums">{plan.monthsLeft}</div>
                                 <div className="text-xs text-ink-faint">months left</div>
                               </div>
                             </div>

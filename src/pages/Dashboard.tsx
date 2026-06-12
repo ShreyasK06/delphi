@@ -98,11 +98,11 @@ export default function Dashboard() {
 
       <div id="emergency" className="bg-surface rounded-2xl border border-line p-6 scroll-mt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Emergency fund</h2>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-ink">{fmtMoney(ep.current)}</span>
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className="font-display text-3xl font-bold text-ink tabular-nums">{fmtMoney(ep.current)}</span>
           <span className="text-sm text-ink-faint">of {fmtMoney(ep.target)} {ep.microGoal ? 'starter goal' : '(1 month of essentials)'}</span>
         </div>
-        <div className="mt-2 h-2.5 rounded-full bg-surface-2 overflow-hidden">
+        <div className="mt-3 h-2.5 rounded-full bg-surface-2 overflow-hidden">
           <div className="h-full rounded-full bg-ok" style={{ width: `${Math.max(ep.pctFunded, 2)}%` }} />
         </div>
         {ep.gap > 0 ? (
@@ -115,21 +115,29 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div id="tools" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 scroll-mt-6">
-        {tools.map(({ to, label, desc, Icon }) => (
-          <Link key={to} to={to} className="bg-surface rounded-xl border border-line p-4 hover:border-brand transition-colors">
-            <Icon className="w-5 h-5 text-brand" />
-            <div className="mt-2 font-semibold text-sm text-ink">{label}</div>
-            <div className="text-xs text-ink-faint">{desc}</div>
-          </Link>
-        ))}
-      </div>
+      <section id="tools" className="scroll-mt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint mb-2">Tools</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {tools.map(({ to, label, desc, Icon }) => (
+            <Link key={to} to={to} className="group bg-surface rounded-xl border border-line p-4 hover:border-brand/50 transition-colors duration-150">
+              <Icon className="w-5 h-5 text-brand" />
+              <div className="mt-2 font-semibold text-sm text-ink group-hover:text-brand transition-colors duration-150">{label}</div>
+              <div className="text-xs text-ink-faint">{desc}</div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {videos.length > 0 && (
         <section id="learning" className="scroll-mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint mb-2">
-            2-minute explainers picked for you
-          </h2>
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">
+              2-minute explainers picked for you
+            </h2>
+            <Link to="/coach" className="text-xs font-medium text-brand hover:text-brand-strong transition-colors duration-150">
+              Ask the coach →
+            </Link>
+          </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {videos.map((v) => <VideoModuleCard key={v.id} video={v} />)}
           </div>

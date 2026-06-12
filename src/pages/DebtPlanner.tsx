@@ -30,7 +30,7 @@ function MethodCard({ result, title, tagline, highlight }: { result: PayoffResul
           At this payment, balances can't outrun the interest. Raise the monthly amount.
         </p>
       ) : (
-        <dl className="mt-4 space-y-2 text-sm">
+        <dl className="mt-4 space-y-2 text-sm tabular-nums">
           <div className="flex justify-between">
             <dt className="text-ink-faint">Debt-free in</dt>
             <dd className="font-semibold text-ink">
@@ -157,7 +157,7 @@ export default function DebtPlanner() {
             onChange={(e) => setPayment(Number(e.target.value))}
             className="flex-1 accent-brand"
           />
-          <span className="font-bold text-ink w-24 text-right">{fmtMoney(payment)}/mo</span>
+          <span className="font-display text-lg font-bold text-ink w-28 text-right tabular-nums">{fmtMoney(payment)}/mo</span>
         </div>
       </div>
 

@@ -14,7 +14,26 @@ const DEBT_TYPES = ['Student loan', 'Credit card', 'Car payment', 'Personal loan
 // Steps: 0=Welcome 1=Income 2=Expenses 3=Debt 4=Savings 5=Goals 6=Quiz 7=Score
 const TOTAL_DATA_STEPS = 6 // steps 1-6 have progress bar
 
-function Money({ label, value, onChange, hint }: { label: string; value: number; onChange: (n: number) => void; hint?: string }) {
+// Compute a date ~6 months from today as YYYY-MM
+function sixMonthsOut(): string {
+  const d = new Date()
+  d.setMonth(d.getMonth() + 6)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function Money({
+  label,
+  value,
+  onChange,
+  hint,
+  placeholder,
+}: {
+  label: string
+  value: number
+  onChange: (n: number) => void
+  hint?: string
+  placeholder?: string
+}) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-ink-mid">{label}</span>
@@ -25,7 +44,7 @@ function Money({ label, value, onChange, hint }: { label: string; value: number;
           type="number"
           min={0}
           value={value === 0 ? '' : value}
-          placeholder="0"
+          placeholder={placeholder ?? '0'}
           onChange={(e) => onChange(Math.max(Number(e.target.value) || 0, 0))}
           className="w-full rounded-xl border border-line-strong pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
         />
@@ -48,6 +67,13 @@ const stepTitles = [
 export default function Onboarding() {
   const navigate = useNavigate()
   const { state, update } = useProfile()
+
+  // Determine if this is a returning user with existing quiz answers
+  const hasExistingQuizAnswers =
+    state != null &&
+    state.profile.quiz_answers != null &&
+    Object.keys(state.profile.quiz_answers).length >= knowledgeQuiz.length
+
   const [step, setStep] = useState(state ? 1 : 0)
   const [profile, setProfile] = useState<Profile>(() =>
     state ? structuredClone(state.profile) : { ...emptyProfile },
@@ -57,6 +83,8 @@ export default function Onboarding() {
   const [quizIndex, setQuizIndex] = useState(0)
   const [quizSelected, setQuizSelected] = useState<number | null>(null)
   const [quizRevealed, setQuizRevealed] = useState(false)
+  // Whether the user has opted to retake the quiz (overrides skip logic)
+  const [retakingQuiz, setRetakingQuiz] = useState(false)
 
   const set = (patch: Partial<Profile>) => setProfile((p) => ({ ...p, ...patch }))
   const setExpense = (key: keyof Profile['monthly_expenses'], val: number) =>
@@ -80,7 +108,11 @@ export default function Onboarding() {
   }
 
   const skipOnboarding = () => {
-    finish({ ...emptyProfile })
+    if (state) {
+      navigate('/dashboard')
+    } else {
+      finish({ ...emptyProfile })
+    }
   }
 
   const answerQuiz = (optionIndex: number) => {
@@ -101,6 +133,26 @@ export default function Onboarding() {
     }
   }
 
+  // Called from step 5 "Next" button
+  const proceedFromGoals = () => {
+    if (hasExistingQuizAnswers && !retakingQuiz) {
+      // Skip quiz, go straight to score reveal
+      setStep(7)
+    } else {
+      setStep(6)
+    }
+  }
+
+  // Pre-fill goal form from a template chip
+  const applyGoalTemplate = (name: string, amount: number) => {
+    setNewGoal({ name, amount, by: sixMonthsOut() })
+  }
+
+  // Credit card debt balance (for "Pay off my card" template)
+  const cardDebtBalance = profile.debt_breakdown
+    .filter((d) => d.type === 'Credit card')
+    .reduce((s, d) => s + d.balance, 0)
+
   const score = step === 7 ? calculateScore(profile) : null
   const currentQuiz = knowledgeQuiz[quizIndex]
 
@@ -115,10 +167,16 @@ export default function Onboarding() {
         </div>
 
         {step > 0 && step < 7 && (
-          <div className="flex gap-1.5 mb-4">
-            {Array.from({ length: TOTAL_DATA_STEPS }).map((_, i) => (
-              <div key={i} className={`h-1.5 flex-1 rounded-full ${i + 1 <= step ? 'bg-emerald-400' : 'bg-white/15'}`} />
-            ))}
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-baseline justify-between text-[11px] text-emerald-100/60">
+              <span className="font-medium uppercase tracking-wide">Step {step} of {TOTAL_DATA_STEPS}</span>
+              <span>{Math.round((step / TOTAL_DATA_STEPS) * 100)}% there</span>
+            </div>
+            <div className="flex gap-1.5">
+              {Array.from({ length: TOTAL_DATA_STEPS }).map((_, i) => (
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-150 ${i + 1 <= step ? 'bg-emerald-400' : 'bg-white/15'}`} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -134,7 +192,7 @@ export default function Onboarding() {
                 A few quick questions and I'll give you a Financial Health Score with one concrete next move.
               </p>
               <p className="text-xs text-ink-faint bg-surface-2 rounded-lg p-3">
-                Your numbers stay private, stored only in this browser. No bank connections, no judgment.
+                Your numbers are saved securely to your account, so they're here when you come back. No bank connections, no judgment.
               </p>
               <button
                 onClick={() => setStep(1)}
@@ -200,13 +258,14 @@ export default function Onboarding() {
               <p className="text-sm text-ink-mid">
                 The basics going out each month: rent, food, getting around, and everything else that hits regularly.
               </p>
-              <Money label="Rent / housing" value={profile.monthly_expenses.rent} onChange={(n) => setExpense('rent', n)} />
-              <Money label="Food" hint="meal plan + groceries + eating out" value={profile.monthly_expenses.food} onChange={(n) => setExpense('food', n)} />
-              <Money label="Transportation" value={profile.monthly_expenses.transportation} onChange={(n) => setExpense('transportation', n)} />
-              <Money label="Utilities" hint="electric, wifi, phone" value={profile.monthly_expenses.utilities} onChange={(n) => setExpense('utilities', n)} />
-              <Money label="Subscriptions" hint="streaming, music, gym" value={profile.monthly_expenses.subscriptions} onChange={(n) => setExpense('subscriptions', n)} />
-              <Money label="Going out" hint="dining out, events, nights out" value={profile.monthly_expenses.going_out} onChange={(n) => setExpense('going_out', n)} />
-              <Money label="Everything else" hint="textbooks, fees, Greek life, trips" value={profile.monthly_expenses.other} onChange={(n) => setExpense('other', n)} />
+              <p className="text-xs text-ink-faint">Rough guesses are fine. You can fine-tune everything later on the Budget page.</p>
+              <Money label="Rent / housing" value={profile.monthly_expenses.rent} onChange={(n) => setExpense('rent', n)} placeholder="e.g. 600" />
+              <Money label="Food" hint="meal plan + groceries + eating out" value={profile.monthly_expenses.food} onChange={(n) => setExpense('food', n)} placeholder="e.g. 250" />
+              <Money label="Transportation" value={profile.monthly_expenses.transportation} onChange={(n) => setExpense('transportation', n)} placeholder="e.g. 50" />
+              <Money label="Utilities" hint="electric, wifi, phone" value={profile.monthly_expenses.utilities} onChange={(n) => setExpense('utilities', n)} placeholder="e.g. 40" />
+              <Money label="Subscriptions" hint="streaming, music, gym" value={profile.monthly_expenses.subscriptions} onChange={(n) => setExpense('subscriptions', n)} placeholder="e.g. 25" />
+              <Money label="Going out" hint="dining out, events, nights out" value={profile.monthly_expenses.going_out} onChange={(n) => setExpense('going_out', n)} placeholder="e.g. 100" />
+              <Money label="Everything else" hint="textbooks, fees, Greek life, trips" value={profile.monthly_expenses.other} onChange={(n) => setExpense('other', n)} placeholder="e.g. 50" />
             </div>
           )}
 
@@ -235,17 +294,20 @@ export default function Onboarding() {
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">Type</span>
-                  <select value={newDebt.type} onChange={(e) => setNewDebt({ ...newDebt, type: e.target.value })} className="mt-1 w-full rounded-lg border border-line-strong px-2 py-2 text-sm bg-surface">
+                  <select value={newDebt.type} onChange={(e) => setNewDebt({ ...newDebt, type: e.target.value })} className="mt-1 w-full rounded-lg border border-line-strong px-2 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand">
                     {DEBT_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">Balance</span>
-                  <input type="number" min={0} value={newDebt.balance || ''} placeholder="0" onChange={(e) => setNewDebt({ ...newDebt, balance: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-28 rounded-lg border border-line-strong px-2 py-2 text-sm" />
+                  <input type="number" min={0} value={newDebt.balance || ''} placeholder="0" onChange={(e) => setNewDebt({ ...newDebt, balance: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-28 rounded-lg border border-line-strong px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">APR %</span>
-                  <input type="number" min={0} step={0.1} value={newDebt.rate || ''} placeholder="5.5" onChange={(e) => setNewDebt({ ...newDebt, rate: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-20 rounded-lg border border-line-strong px-2 py-2 text-sm" />
+                  <div>
+                    <input type="number" min={0} step={0.1} value={newDebt.rate || ''} placeholder="5.5" onChange={(e) => setNewDebt({ ...newDebt, rate: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-20 rounded-lg border border-line-strong px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+                    <span className="block text-xs text-ink-faint mt-0.5">The interest rate on your statement. Credit cards are usually 18 to 28.</span>
+                  </div>
                 </label>
                 <button type="button" onClick={addDebt} className="rounded-lg bg-brand text-on-brand px-3 py-2 text-sm font-medium hover:bg-brand-strong">
                   Add
@@ -253,7 +315,7 @@ export default function Onboarding() {
               </div>
               <label className="flex items-center gap-2 text-sm text-ink-mid">
                 <input type="checkbox" checked={profile.has_credit_card} onChange={(e) => set({ has_credit_card: e.target.checked })} className="rounded" />
-                I have a credit card
+                I have a credit card (even if I pay it off every month)
               </label>
             </div>
           )}
@@ -283,6 +345,30 @@ export default function Onboarding() {
               <p className="text-sm text-ink-mid">
                 What are you actually trying to do with money in the next 6-12 months? Give it a name, a number, and a date.
               </p>
+              {/* Goal template chips */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyGoalTemplate('Emergency fund', 500)}
+                  className="text-xs rounded-full px-3 py-1.5 border border-line-strong text-ink-mid hover:border-brand transition-colors"
+                >
+                  Emergency fund · $500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyGoalTemplate('Spring break', 800)}
+                  className="text-xs rounded-full px-3 py-1.5 border border-line-strong text-ink-mid hover:border-brand transition-colors"
+                >
+                  Spring break · $800
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyGoalTemplate('Pay off my card', cardDebtBalance > 0 ? cardDebtBalance : 500)}
+                  className="text-xs rounded-full px-3 py-1.5 border border-line-strong text-ink-mid hover:border-brand transition-colors"
+                >
+                  Pay off my card
+                </button>
+              </div>
               {profile.goals.length > 0 && (
                 <ul className="space-y-2">
                   {profile.goals.map((g) => (
@@ -296,15 +382,15 @@ export default function Onboarding() {
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">Goal</span>
-                  <input value={newGoal.name} placeholder="Spring break trip" onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })} className="mt-1 w-full rounded-lg border border-line-strong px-2 py-2 text-sm" />
+                  <input value={newGoal.name} placeholder="Spring break trip" onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })} className="mt-1 w-full rounded-lg border border-line-strong px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">Amount</span>
-                  <input type="number" min={0} value={newGoal.amount || ''} placeholder="800" onChange={(e) => setNewGoal({ ...newGoal, amount: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-24 rounded-lg border border-line-strong px-2 py-2 text-sm" />
+                  <input type="number" min={0} value={newGoal.amount || ''} placeholder="800" onChange={(e) => setNewGoal({ ...newGoal, amount: Number(e.target.value) || 0 })} className="mt-1 w-full sm:w-24 rounded-lg border border-line-strong px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-ink-faint">By</span>
-                  <input type="month" value={newGoal.by} onChange={(e) => setNewGoal({ ...newGoal, by: e.target.value })} className="mt-1 w-full sm:w-36 rounded-lg border border-line-strong px-2 py-2 text-sm" />
+                  <input type="month" value={newGoal.by} onChange={(e) => setNewGoal({ ...newGoal, by: e.target.value })} className="mt-1 w-full sm:w-36 rounded-lg border border-line-strong px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
                 </label>
                 <button type="button" onClick={addGoal} className="rounded-lg bg-brand text-on-brand px-3 py-2 text-sm font-medium hover:bg-brand-strong">Add</button>
               </div>
@@ -314,6 +400,7 @@ export default function Onboarding() {
           {/* ── Step 6: Knowledge Quiz ── */}
           {step === 6 && (
             <div className="mt-4 space-y-4">
+              <p className="text-xs text-ink-faint">Not a test. This just helps your coach pitch advice at the right level.</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-ink-faint font-medium uppercase tracking-wide">{currentQuiz.topic}</span>
                 <span className="text-xs text-ink-faint">{quizIndex + 1} / {knowledgeQuiz.length}</span>
@@ -343,7 +430,7 @@ export default function Onboarding() {
               {quizRevealed && (
                 <div className="mt-2">
                   <div className={`rounded-lg px-4 py-2.5 text-sm ${quizSelected === currentQuiz.correct ? 'bg-ok-soft text-ok-ink' : 'bg-bad-soft text-bad-ink'}`}>
-                    {quizSelected === currentQuiz.correct ? 'Correct.' : `Not quite — the answer is: ${currentQuiz.options[currentQuiz.correct]}.`}
+                    {quizSelected === currentQuiz.correct ? 'Correct.' : `Not quite, the answer is: ${currentQuiz.options[currentQuiz.correct]}.`}
                   </div>
                   <button
                     onClick={nextQuizQuestion}
@@ -363,6 +450,9 @@ export default function Onboarding() {
           {step === 7 && score && (
             <div className="mt-4 space-y-4">
               <ScoreCard result={score} />
+              <p className="text-xs text-ink-faint text-center">
+                Most students start between 25 and 45. The score moves fast once you make your first move.
+              </p>
               <button onClick={() => finish()} className="w-full rounded-xl bg-brand text-on-brand py-3 text-sm font-semibold hover:bg-brand-strong transition-colors">
                 Take me to my dashboard →
               </button>
@@ -371,18 +461,33 @@ export default function Onboarding() {
 
           {/* ── Back / Next navigation (steps 1-5) ── */}
           {step > 0 && step < 6 && (
-            <div className="mt-6 flex justify-between">
+            <div className="mt-6 flex justify-between items-center">
               <button type="button" onClick={() => setStep(step - 1)} className="text-sm text-ink-faint hover:text-ink px-3 py-2">
                 ← Back
               </button>
-              <button
-                type="button"
-                onClick={() => setStep(step + 1)}
-                disabled={step === 1 && profile.monthly_income <= 0}
-                className="rounded-xl bg-brand text-on-brand px-5 py-2.5 text-sm font-semibold hover:bg-brand-strong disabled:opacity-40 transition-colors"
-              >
-                {step === 5 ? 'Knowledge check →' : 'Next →'}
-              </button>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={step === 5 ? proceedFromGoals : () => setStep(step + 1)}
+                  disabled={step === 1 && profile.monthly_income <= 0}
+                  className="rounded-xl bg-brand text-on-brand px-5 py-2.5 text-sm font-semibold hover:bg-brand-strong disabled:opacity-40 transition-colors"
+                >
+                  {step === 5
+                    ? hasExistingQuizAnswers && !retakingQuiz
+                      ? 'See my score →'
+                      : 'Knowledge check →'
+                    : 'Next →'}
+                </button>
+                {step === 5 && hasExistingQuizAnswers && !retakingQuiz && (
+                  <button
+                    type="button"
+                    onClick={() => { setRetakingQuiz(true); setStep(6) }}
+                    className="text-xs text-ink-faint hover:text-ink underline"
+                  >
+                    Retake the knowledge check
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {step === 6 && quizRevealed === false && (

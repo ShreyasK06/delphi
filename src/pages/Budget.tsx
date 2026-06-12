@@ -87,7 +87,7 @@ function MoneySlider({
           {label}
           {hint && <span className="text-ink-faint"> ({hint})</span>}
         </label>
-        <span className="text-xs text-ink-faint">{fmtMoney(value)}/mo</span>
+        <span className="text-xs text-ink-faint tabular-nums">{fmtMoney(value)}/mo</span>
       </div>
       <div className="mt-1 flex items-center gap-3">
         <input
@@ -304,21 +304,21 @@ export default function Budget() {
 
       {/* Summary tiles */}
       <div id="overview" className="grid sm:grid-cols-3 gap-3 scroll-mt-6">
-        <div className="bg-surface rounded-xl border border-line p-4">
+        <div className="bg-surface rounded-xl border border-line p-5">
           <div className="text-xs uppercase tracking-wide text-ink-faint">Income</div>
-          <div className="text-xl font-bold text-ink">
+          <div className="mt-1 font-display text-2xl font-bold text-ink tabular-nums">
             {fmtMoney(budget.income)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
         </div>
-        <div className="bg-surface rounded-xl border border-line p-4">
+        <div className="bg-surface rounded-xl border border-line p-5">
           <div className="text-xs uppercase tracking-wide text-ink-faint">Spending</div>
-          <div className="text-xl font-bold text-ink">
+          <div className="mt-1 font-display text-2xl font-bold text-ink tabular-nums">
             {fmtMoney(budget.totalSpent)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
         </div>
-        <div className="bg-surface rounded-xl border border-line p-4">
+        <div className="bg-surface rounded-xl border border-line p-5">
           <div className="text-xs uppercase tracking-wide text-ink-faint">Left over</div>
-          <div className={`text-xl font-bold ${budget.leftover >= 0 ? 'text-ok' : 'text-bad'}`}>
+          <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${budget.leftover >= 0 ? 'text-ok' : 'text-bad'}`}>
             {fmtMoney(budget.leftover)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
         </div>

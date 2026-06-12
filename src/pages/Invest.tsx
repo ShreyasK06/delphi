@@ -235,11 +235,11 @@ export default function Invest() {
         <h3 className="font-semibold text-sm text-brand-ink">The ten-year delay that costs $168,000</h3>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
-            <div className="text-2xl font-bold text-brand-ink">$320,000</div>
+            <div className="font-display text-3xl font-bold text-brand-ink tabular-nums">$320,000</div>
             <p className="text-xs text-brand-ink/80">$100/month starting at age 20, by 65 at 7% average return</p>
           </div>
           <div>
-            <div className="text-2xl font-bold text-brand-ink">$152,000</div>
+            <div className="font-display text-3xl font-bold text-brand-ink tabular-nums">$152,000</div>
             <p className="text-xs text-brand-ink/80">The same $100/month starting at age 30</p>
           </div>
         </div>
@@ -597,7 +597,7 @@ export default function Invest() {
 
           <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-1">
             <div>
-              <div className="text-3xl font-bold text-ink">{fmtMoney(dca.futureValue)}</div>
+              <div className="font-display text-4xl font-bold text-ink tabular-nums tracking-tight">{fmtMoney(dca.futureValue)}</div>
               <div className="text-xs text-ink-faint">projected at age 65</div>
             </div>
             <div className="text-sm text-ink-mid">

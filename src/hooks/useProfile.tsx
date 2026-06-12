@@ -12,6 +12,8 @@ import {
 
 interface ProfileContextValue {
   state: StoredState | null
+  /** true while the initial async load is in flight */
+  loading: boolean
   /** Saves the profile, recalculates the score, appends to history. */
   update: (profile: Profile) => StoredState
   reset: () => void
@@ -25,6 +27,7 @@ function dispatchSyncError() {
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StoredState | null>(null)
+  const [loading, setLoading] = useState(true)
   const initialized = useRef(false)
 
   useEffect(() => {
@@ -32,46 +35,50 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     initialized.current = true
 
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        // Not logged in — load from cache so onboarding still works offline
-        setState(loadCachedState())
-        return
-      }
-
-      const userId = session.user.id
-
-      // Try to load from Supabase
-      const { data: row, error } = await supabase
-        .from('profiles')
-        .select('profile_data')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (error) {
-        // Fall back to cache
-        setState(loadCachedState())
-        dispatchSyncError()
-        return
-      }
-
-      if (row?.profile_data && Object.keys(row.profile_data).length > 0) {
-        // Supabase has data — use it as source of truth
-        const remote = row.profile_data as StoredState
-        writeCachedState(remote)
-        setState(remote)
-      } else {
-        // No Supabase row yet — migrate local data if any
-        const local = loadLegacyState()
-        if (local) {
-          const { error: upsertError } = await supabase.from('profiles').upsert({
-            id: userId,
-            profile_data: local,
-            updated_at: new Date().toISOString(),
-          })
-          if (upsertError) dispatchSyncError()
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          // Not logged in — load from cache so onboarding still works offline
+          setState(loadCachedState())
+          return
         }
-        setState(local)
+
+        const userId = session.user.id
+
+        // Try to load from Supabase
+        const { data: row, error } = await supabase
+          .from('profiles')
+          .select('profile_data')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (error) {
+          // Fall back to cache
+          setState(loadCachedState())
+          dispatchSyncError()
+          return
+        }
+
+        if (row?.profile_data && Object.keys(row.profile_data).length > 0) {
+          // Supabase has data — use it as source of truth
+          const remote = row.profile_data as StoredState
+          writeCachedState(remote)
+          setState(remote)
+        } else {
+          // No Supabase row yet — migrate local data if any
+          const local = loadLegacyState()
+          if (local) {
+            const { error: upsertError } = await supabase.from('profiles').upsert({
+              id: userId,
+              profile_data: local,
+              updated_at: new Date().toISOString(),
+            })
+            if (upsertError) dispatchSyncError()
+          }
+          setState(local)
+        }
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -134,7 +141,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ProfileContext.Provider value={{ state, update, reset }}>
+    <ProfileContext.Provider value={{ state, loading, update, reset }}>
       {children}
     </ProfileContext.Provider>
   )

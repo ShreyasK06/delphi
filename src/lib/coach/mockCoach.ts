@@ -79,6 +79,20 @@ function goalsReply(p: Profile): string {
   return [`Here's where your goals stand:`, lines.join('\n')].join('\n\n')
 }
 
+function foodReply(p: Profile): string {
+  const food = p.monthly_expenses.food
+  const income = p.monthly_income
+  const foodPct = income > 0 ? Math.round((food / income) * 100) : 0
+  // 50/30/20: food target ~12% of income for students
+  const target = Math.round(income * 0.12)
+  return [
+    `You're spending **${income > 0 ? `${fmtMoney(food)}/month on food, which is ${foodPct}% of your income` : `${fmtMoney(food)}/month on food`}**. A rough 50/30/20 target puts food around **${fmtMoney(target)}/month** (about 12% of income) for students.`,
+    food > target
+      ? `That's **${fmtMoney(food - target)}/month over** the target. Two moves that actually work:\n\n1. **Meal prep one day a week.** Cooking a batch of rice, protein, and a vegetable on Sunday typically cuts food spend by 30 to 40 percent because you stop buying $12 lunches when you're tired.\n2. **Use your dining dollars or meal plan first.** If you have one, it's already paid for. Prioritize those before swiping your card anywhere near campus.`
+      : `You're already close to the target. If it still feels like you're overspending, check whether delivery fees and tips are buried in that number. Those can add $30 to $50 a month invisibly. The Budget page breaks down your full food line.`,
+  ].join('\n\n')
+}
+
 function budgetReply(p: Profile): string {
   const spent = totalExpenses(p.monthly_expenses)
   const surplus = monthlySurplus(p)
@@ -129,6 +143,7 @@ export class MockCoach implements CoachAdapter {
     if (/debt|loan|credit card balance|payoff|pay off|owe/.test(m)) return debtReply(profile)
     if (/emergency|rainy day|cushion|buffer|safety net/.test(m)) return emergencyReply(profile)
     if (/goal|trip|save for|saving for|laptop|spring break/.test(m)) return goalsReply(profile)
+    if (/food|groceries|eating|meal|overspend.*food|food.*overspend|spend.*food|food.*spend/.test(m)) return foodReply(profile)
     if (/budget|spending|expenses|afford|money going/.test(m)) return budgetReply(profile)
     if (/tax|filing|deduction|aotc/.test(m)) {
       return "Taxes for students usually come down to: file if you had a job (you'll likely get withholding back), and check the **AOTC credit** if you're paying tuition, worth up to $2,500. I can give you the overview, but for actual filing, your campus **VITA site** (free, IRS-trained volunteers) or IRS Free File is the move. Big picture questions, fire away."

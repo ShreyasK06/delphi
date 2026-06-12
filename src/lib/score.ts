@@ -165,8 +165,12 @@ function goalsScore(p: Profile): ScoreCategory {
 }
 
 function creditScore(p: Profile): ScoreCategory {
-  const points = p.has_credit_card ? 10 : 5
-  const note = p.has_credit_card
+  const hasCreditCardDebt = p.debt_breakdown.some(
+    (d) => d.type.toLowerCase() === 'credit card',
+  )
+  const hasCard = p.has_credit_card || hasCreditCardDebt
+  const points = hasCard ? 10 : 5
+  const note = hasCard
     ? 'You have a credit card. Used responsibly, it builds your score.'
     : 'No credit card yet, building credit early pays off after graduation.'
   return { key: 'credit', label: 'Credit Awareness', points, max: 10, note }

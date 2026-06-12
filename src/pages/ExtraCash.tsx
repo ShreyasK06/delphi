@@ -72,17 +72,17 @@ export default function ExtraCash() {
         <p className="mt-1 text-xs text-ink-faint">Give every dollar a purpose before you spend any of it.</p>
         <div className="mt-4 grid sm:grid-cols-3 gap-3">
           <div className="rounded-xl bg-ok-soft border border-ok-line p-4">
-            <div className="text-2xl font-bold text-ok">50%</div>
+            <div className="font-display text-3xl font-bold text-ok tabular-nums">50%</div>
             <div className="mt-1 font-semibold text-sm text-ok-ink">Future goals</div>
             <p className="mt-1 text-xs text-ok-ink/80">Emergency fund, debt payoff, investing, savings for upcoming expenses</p>
           </div>
           <div className="rounded-xl bg-warn-soft border border-warn-line p-4">
-            <div className="text-2xl font-bold text-warn">30%</div>
+            <div className="font-display text-3xl font-bold text-warn tabular-nums">30%</div>
             <div className="mt-1 font-semibold text-sm text-warn-ink">Near-term needs</div>
             <p className="mt-1 text-xs text-warn-ink/80">Career development, certifications, professional tools, education expenses</p>
           </div>
           <div className="rounded-xl bg-info-soft border border-info-line p-4">
-            <div className="text-2xl font-bold text-info">20%</div>
+            <div className="font-display text-3xl font-bold text-info tabular-nums">20%</div>
             <div className="mt-1 font-semibold text-sm text-info-ink">Enjoy it</div>
             <p className="mt-1 text-xs text-info-ink/80">Guilt-free spending. You earned it. Enjoy a real slice before optimizing the rest.</p>
           </div>

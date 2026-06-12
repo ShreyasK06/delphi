@@ -84,7 +84,7 @@ function BackToTop() {
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       aria-label="Back to top"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-1.5 rounded-full bg-surface border border-line-strong shadow-lg px-4 py-2 text-xs font-medium text-ink-mid hover:border-brand hover:text-brand transition-colors"
+      className="fixed bottom-24 right-6 z-50 flex items-center gap-1.5 rounded-full bg-surface border border-line-strong shadow-lg px-4 py-2 text-xs font-medium text-ink-mid hover:border-brand hover:text-brand transition-colors"
     >
       ↑ Top
     </button>
@@ -163,7 +163,7 @@ export default function Layout() {
             </button>
           </div>
           <p className="px-1 text-[10px] text-emerald-100/40 leading-snug">
-            Educational tool, not a licensed advisor. Your numbers stay in this browser.
+            Educational tool, not a licensed advisor. Your data stays private to your account.
           </p>
         </div>
       </aside>
@@ -207,7 +207,7 @@ export default function Layout() {
         <div
           role="alert"
           aria-live="assertive"
-          className="fixed bottom-20 right-6 z-50 flex items-center gap-2 rounded-xl bg-surface border border-[var(--color-warn)] shadow-lg px-4 py-3 text-sm text-ink animate-pop"
+          className="fixed bottom-36 right-6 z-50 flex items-center gap-2 rounded-xl bg-surface border border-[var(--color-warn)] shadow-lg px-4 py-3 text-sm text-ink animate-pop"
         >
           <span style={{ color: 'var(--color-warn)' }}>⚠</span>
           Sync failed. Changes saved locally.

@@ -52,12 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!name.trim()) return 'Tell us what to call you.'
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return 'That email looks off, double-check it.'
     if (password.length < 6) return 'Password needs at least 6 characters.'
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: { data: { name: name.trim() } },
     })
     if (error) return error.message
+    // When "Confirm email" is enabled, signUp succeeds but session is null.
+    if (!data.session) return 'CONFIRM_EMAIL'
     return null
   }
 
