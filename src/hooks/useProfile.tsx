@@ -6,7 +6,6 @@ import {
   loadCachedState,
   writeCachedState,
   clearCachedState,
-  loadLegacyState,
   type StoredState,
 } from '../lib/storage'
 
@@ -28,24 +27,12 @@ function dispatchSyncError() {
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StoredState | null>(null)
   const [loading, setLoading] = useState(true)
-  const initialized = useRef(false)
+  const currentUserId = useRef<string | null>(null)
 
   useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
-
-    async function init() {
+    async function loadForUser(userId: string) {
+      setLoading(true)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-          // Not logged in — load from cache so onboarding still works offline
-          setState(loadCachedState())
-          return
-        }
-
-        const userId = session.user.id
-
-        // Try to load from Supabase
         const { data: row, error } = await supabase
           .from('profiles')
           .select('profile_data')
@@ -53,36 +40,67 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           .maybeSingle()
 
         if (error) {
-          // Fall back to cache
-          setState(loadCachedState())
+          // Fall back to cache only if it belongs to this user
+          const cached = loadCachedState()
+          if (cached?.owner_id === userId) {
+            setState(cached)
+          } else {
+            setState(null)
+          }
           dispatchSyncError()
           return
         }
 
         if (row?.profile_data && Object.keys(row.profile_data).length > 0) {
-          // Supabase has data — use it as source of truth
+          // Supabase has data — stamp owner and use as source of truth
           const remote = row.profile_data as StoredState
+          remote.owner_id = userId
           writeCachedState(remote)
           setState(remote)
         } else {
-          // No Supabase row yet — migrate local data if any
-          const local = loadLegacyState()
-          if (local) {
-            const { error: upsertError } = await supabase.from('profiles').upsert({
-              id: userId,
-              profile_data: local,
-              updated_at: new Date().toISOString(),
-            })
-            if (upsertError) dispatchSyncError()
-          }
-          setState(local)
+          // No profile row yet — this is a brand-new account
+          clearCachedState()
+          setState(null)
         }
       } finally {
         setLoading(false)
       }
     }
 
-    init()
+    // Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        currentUserId.current = session.user.id
+        await loadForUser(session.user.id)
+      } else {
+        // Not logged in — show cached state for routing purposes only
+        setState(loadCachedState())
+        setLoading(false)
+      }
+    })
+
+    // React to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        clearCachedState()
+        setState(null)
+        currentUserId.current = null
+        setLoading(false)
+        return
+      }
+
+      if (session?.user) {
+        const incomingId = session.user.id
+        // Only reload if the user actually changed (ignore token refresh etc.)
+        if (incomingId !== currentUserId.current) {
+          currentUserId.current = incomingId
+          clearCachedState()
+          await loadForUser(incomingId)
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const update = (profile: Profile): StoredState => {
@@ -94,7 +112,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (!last || last.score !== score) {
       history.push({ date: today, score })
     }
-    const next: StoredState = { profile, scoreHistory: history, lastUpdated: today }
+    const next: StoredState = {
+      profile,
+      scoreHistory: history,
+      lastUpdated: today,
+      owner_id: currentUserId.current ?? undefined,
+    }
 
     // Optimistic local write
     writeCachedState(next)

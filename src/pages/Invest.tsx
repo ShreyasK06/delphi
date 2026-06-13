@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { fmtMoney } from '../types'
-import PageNav from '../components/PageNav'
+import Tabs, { TabPanel } from '../components/Tabs'
 
-// ── content (from the product spec) ─────────────────────────────────────────
+// ── content ──────────────────────────────────────────────────────────────────
 
 const conceptCards = [
   {
@@ -114,12 +114,12 @@ const growthTable = [
   { monthly: 200, at65: 640000 },
 ]
 
-const sections = [
+const INVEST_TABS = [
   { id: 'retirement', label: 'Retirement accounts' },
   { id: 'stocks', label: 'Stocks and funds' },
   { id: 'horizon', label: 'Long vs short term' },
   { id: 'patterns', label: 'Patterns' },
-  { id: 'how-much', label: 'How much and how often' },
+  { id: 'how-much', label: 'How much and when' },
 ]
 
 const signalStyles: Record<string, string> = {
@@ -146,6 +146,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function Invest() {
   const { state } = useProfile()
+  const [activeTab, setActiveTab] = useState('retirement')
   const [account, setAccount] = useState<'roth' | '401k'>('roth')
   const [dcaMonthly, setDcaMonthly] = useState(50)
   const [dcaAge, setDcaAge] = useState(20)
@@ -192,22 +193,25 @@ export default function Invest() {
     }
     return out
   }, [dcaMonthly, dcaAge])
-  const decadeMax = decades.length > 0 ? decades[decades.length - 1].contributed + decades[decades.length - 1].growth : 1
+  const decadeMax =
+    decades.length > 0
+      ? decades[decades.length - 1].contributed + decades[decades.length - 1].growth
+      : 1
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-ink">Invest</h1>
-        <p className="text-sm text-ink-faint">
-          Time is the asset. A 20-year-old investing $50 a month has a structural advantage over a
-          35-year-old investing $500, because of compounding.
+        <p className="text-[11px] font-semibold tracking-wider text-brand uppercase mb-1">GROW</p>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Invest</h1>
+        <p className="text-sm text-ink-faint max-w-2xl mt-1">
+          Time is the asset. A 20-year-old investing $50 a month has a structural advantage over a 35-year-old investing $500, because of compounding.
         </p>
       </header>
 
-      {/* Priority ladder */}
+      {/* Priority ladder — personal data card */}
       <div className="bg-surface rounded-2xl border border-line p-6">
-        <SectionLabel>Do these in order</SectionLabel>
-        <p className="mt-1 text-xs text-ink-faint">
+        <div className="mb-3"><SectionLabel>Do these in order</SectionLabel></div>
+        <p className="text-xs text-ink-faint">
           The order of operations before any money touches the market. Steps light up as your
           profile covers them.
         </p>
@@ -216,13 +220,17 @@ export default function Invest() {
             <div key={step.label} className="flex gap-3 items-start">
               <span
                 className={`shrink-0 w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center mt-0.5 ${
-                  step.done ? 'bg-ok text-on-brand' : 'bg-surface-2 border border-line-strong text-ink-faint'
+                  step.done
+                    ? 'bg-ok text-on-brand'
+                    : 'bg-surface-2 border border-line-strong text-ink-faint'
                 }`}
               >
                 {step.done ? '✓' : i + 1}
               </span>
               <div>
-                <p className={`text-sm font-semibold ${step.done ? 'text-ok-ink' : 'text-ink'}`}>{step.label}</p>
+                <p className={`text-sm font-semibold ${step.done ? 'text-ok-ink' : 'text-ink'}`}>
+                  {step.label}
+                </p>
                 <p className="text-sm text-ink-mid">{step.note}</p>
               </div>
             </div>
@@ -230,7 +238,7 @@ export default function Invest() {
         </div>
       </div>
 
-      {/* The most persuasive stat */}
+      {/* Compound growth highlight — always visible */}
       <div className="rounded-xl bg-brand-soft border border-brand-line p-5">
         <h3 className="font-semibold text-sm text-brand-ink">The ten-year delay that costs $168,000</h3>
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -248,437 +256,442 @@ export default function Invest() {
         </p>
       </div>
 
-      <PageNav sections={sections} />
+      {/* All five sections behind tabs */}
+      <div className="bg-surface rounded-2xl border border-line p-6">
+        <Tabs tabs={INVEST_TABS} activeId={activeTab} onChange={setActiveTab}>
 
-      {/* ── Section 1: retirement accounts ── */}
-      <section id="retirement" className="bg-surface rounded-2xl border border-line p-6 scroll-mt-6">
-        <SectionLabel>Retirement accounts</SectionLabel>
-        <p className="mt-1 text-xs text-ink-faint">
-          The most ignored section at 20 and the highest-return one. Pick an account type to compare.
-        </p>
-
-        <div className="mt-4 inline-flex rounded-xl border border-line-strong p-1 gap-1">
-          <button
-            onClick={() => setAccount('roth')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              account === 'roth' ? 'bg-brand text-on-brand' : 'text-ink-mid hover:text-ink'
-            }`}
-          >
-            Roth IRA
-          </button>
-          <button
-            onClick={() => setAccount('401k')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              account === '401k' ? 'bg-brand text-on-brand' : 'text-ink-mid hover:text-ink'
-            }`}
-          >
-            401k
-          </button>
-        </div>
-
-        {account === 'roth' ? (
-          <div className="mt-5 space-y-5">
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">2026 contribution limit</div>
-                <div className="mt-1 text-lg font-bold text-ink">$7,000/yr</div>
-                <p className="text-xs text-ink-faint">About $583/month, and never more than you earned that year</p>
-              </div>
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">Tax treatment</div>
-                <div className="mt-1 text-lg font-bold text-ink">Pay tax now, never again</div>
-                <p className="text-xs text-ink-faint">After-tax dollars in, tax-free growth and withdrawals in retirement</p>
-              </div>
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">Withdrawal rule</div>
-                <div className="mt-1 text-lg font-bold text-ink">Contributions stay accessible</div>
-                <p className="text-xs text-ink-faint">Principal can come out anytime without penalty, only growth is locked until 59½</p>
-              </div>
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">Who it suits</div>
-                <div className="mt-1 text-lg font-bold text-ink">Students, almost always</div>
-                <p className="text-xs text-ink-faint">Low income now means a low tax rate now, the ideal time to pay it</p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-ink">Where to open one</h3>
-              <p className="text-sm text-ink-mid mt-1">
-                Fidelity, Schwab, and Vanguard all offer Roth IRAs with no minimums and no fees on
-                index funds. Fidelity and Schwab support fractional shares, which helps when you are
-                starting with small amounts.
+          {/* ── Tab 1: Retirement accounts ── */}
+          <TabPanel id="retirement" activeId={activeTab}>
+            <div id="retirement" className="space-y-5 scroll-mt-6">
+              <p className="text-xs text-ink-faint">
+                The most ignored section at 20 and the highest-return one. Pick an account type to compare.
               </p>
-            </div>
 
-            <div>
-              <h3 className="text-sm font-semibold text-ink">What to invest in, inside it</h3>
-              <p className="text-sm text-ink-mid mt-1">
-                A single target-date fund matching your expected retirement year (a 22-year-old in
-                2026 picks a 2068 or 2070 fund) handles allocation and rebalancing automatically.
-                That is the right answer for most students who do not want to think about it further.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-5 space-y-5">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">The employer match is free money</h3>
-              <p className="text-sm text-ink-mid mt-1">
-                If an employer matches 50% of contributions up to 6% of salary, contributing 6% of a
-                $50,000 salary ($3,000/yr) earns an extra $1,500 from the employer. That is a
-                guaranteed 50% return before any market gains. Not capturing the full match leaves
-                free money on the table.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">2026 contribution limit</div>
-                <div className="mt-1 text-lg font-bold text-ink">$23,500/yr</div>
-                <p className="text-xs text-ink-faint">Pre-tax dollars, through an employer plan</p>
+              <div className="inline-flex rounded-xl border border-line-strong p-1 gap-1">
+                <button
+                  onClick={() => setAccount('roth')}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    account === 'roth' ? 'bg-brand text-on-brand' : 'text-ink-mid hover:text-ink'
+                  }`}
+                >
+                  Roth IRA
+                </button>
+                <button
+                  onClick={() => setAccount('401k')}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    account === '401k' ? 'bg-brand text-on-brand' : 'text-ink-mid hover:text-ink'
+                  }`}
+                >
+                  401k
+                </button>
               </div>
-              <div className="rounded-xl bg-surface-2 border border-line p-4">
-                <div className="text-xs uppercase tracking-wide text-ink-faint">Traditional vs Roth 401k</div>
-                <div className="mt-1 text-lg font-bold text-ink">Roth, early career</div>
-                <p className="text-xs text-ink-faint">Same after-tax logic as the Roth IRA while your bracket is low</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-info-soft border border-info-line px-4 py-3 text-sm text-info-ink">
-              Order of operations after graduation: contribute enough for the full employer match
-              first, then max the Roth IRA, then come back to the 401k if you still have room.
-            </div>
-          </div>
-        )}
-      </section>
 
-      {/* ── Section 2: stocks and funds ── */}
-      <section id="stocks" className="scroll-mt-6 space-y-3">
-        <div>
-          <SectionLabel>Stocks and funds</SectionLabel>
-          <p className="mt-0.5 text-xs text-ink-faint">
-            Not to make you a stock picker. To make sure you know what you are buying before you buy it.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {conceptCards.map((c) => (
-            <div key={c.title} className="bg-surface rounded-xl border border-line p-4">
-              <h3 className="font-semibold text-sm text-ink">{c.title}</h3>
-              <p className="mt-1 text-sm text-ink-mid">{c.body}</p>
-              <p className="mt-2 text-xs font-medium text-brand">{c.why}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-surface rounded-2xl border border-line p-6 overflow-x-auto">
-          <SectionLabel>Where to actually buy</SectionLabel>
-          <table className="w-full mt-3 text-sm">
-            <thead>
-              <tr className="text-xs text-ink-faint uppercase tracking-wide">
-                <th className="text-left font-medium pb-1">Platform</th>
-                <th className="text-left font-medium pb-1">Minimum</th>
-                <th className="text-left font-medium pb-1">Fractional</th>
-                <th className="text-left font-medium pb-1">Roth IRA</th>
-                <th className="text-left font-medium pb-1">Best for</th>
-              </tr>
-            </thead>
-            <tbody>
-              {platforms.map((p) => (
-                <tr key={p.name} className="border-t border-line">
-                  <td className="py-2.5 pr-3 font-medium text-ink">{p.name}</td>
-                  <td className="py-2.5 pr-3 text-ink-mid">{p.minimum}</td>
-                  <td className="py-2.5 pr-3 text-ink-mid">{p.fractional}</td>
-                  <td className="py-2.5 pr-3 text-ink-mid">{p.roth}</td>
-                  <td className="py-2.5 text-ink-faint">{p.bestFor}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-surface rounded-2xl border border-line p-6">
-          <SectionLabel>Starting from zero, in order</SectionLabel>
-          <div className="mt-4 space-y-3">
-            {startingSteps.map((s, i) => (
-              <div key={s.action} className="flex gap-3 items-start">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-brand-soft text-brand text-xs font-bold flex items-center justify-center mt-0.5">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-ink">{s.action}</p>
-                  <p className="text-sm text-ink-mid">{s.detail}</p>
+              {account === 'roth' ? (
+                <div className="space-y-5">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">2026 contribution limit</div>
+                      <div className="mt-1 text-lg font-bold text-ink">$7,000/yr</div>
+                      <p className="text-xs text-ink-faint">About $583/month, and never more than you earned that year</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">Tax treatment</div>
+                      <div className="mt-1 text-lg font-bold text-ink">Pay tax now, never again</div>
+                      <p className="text-xs text-ink-faint">After-tax dollars in, tax-free growth and withdrawals in retirement</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">Withdrawal rule</div>
+                      <div className="mt-1 text-lg font-bold text-ink">Contributions stay accessible</div>
+                      <p className="text-xs text-ink-faint">Principal can come out anytime without penalty, only growth is locked until 59½</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">Who it suits</div>
+                      <div className="mt-1 text-lg font-bold text-ink">Students, almost always</div>
+                      <p className="text-xs text-ink-faint">Low income now means a low tax rate now, the ideal time to pay it</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">Where to open one</h3>
+                    <p className="text-sm text-ink-mid mt-1">
+                      Fidelity, Schwab, and Vanguard all offer Roth IRAs with no minimums and no fees on
+                      index funds. Fidelity and Schwab support fractional shares, which helps when you are
+                      starting with small amounts.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">What to invest in, inside it</h3>
+                    <p className="text-sm text-ink-mid mt-1">
+                      A single target-date fund matching your expected retirement year (a 22-year-old in
+                      2026 picks a 2068 or 2070 fund) handles allocation and rebalancing automatically.
+                      That is the right answer for most students who do not want to think about it further.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Section 3: long vs short term ── */}
-      <section id="horizon" className="scroll-mt-6 space-y-3">
-        <div>
-          <SectionLabel>Long term vs short term</SectionLabel>
-          <p className="mt-0.5 text-xs text-ink-faint">The five-year line decides where the money goes.</p>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="bg-surface rounded-2xl border border-line p-5">
-            <span className="inline-block rounded-full bg-ok-soft text-ok-ink px-2.5 py-0.5 text-xs font-medium">5+ years</span>
-            <h3 className="mt-2 font-semibold text-sm text-ink">Buy and hold</h3>
-            <p className="mt-1 text-sm text-ink-mid">
-              Broad index funds held through every dip. Selling in a downturn locks in the loss,
-              holding through it has historically recovered and then some.
-            </p>
-            <ul className="mt-3 space-y-1.5 text-sm text-ink-mid">
-              <li>• Core: VTI or VOO (60-80%)</li>
-              <li>• International like VXUS (10-20%)</li>
-              <li>• Bonds like BND as the goal gets closer</li>
-            </ul>
-            <p className="mt-3 text-xs text-ink-faint">
-              Tax bonus: in the 10-12% bracket, long-term capital gains are taxed at 0%.
-            </p>
-          </div>
-          <div className="bg-surface rounded-2xl border border-line p-5">
-            <span className="inline-block rounded-full bg-info-soft text-info-ink px-2.5 py-0.5 text-xs font-medium">Under 5 years</span>
-            <h3 className="mt-2 font-semibold text-sm text-ink">Keep it out of stocks</h3>
-            <p className="mt-1 text-sm text-ink-mid">
-              Money for a down payment, grad school, or a major purchase cannot ride out a 30% down
-              year. The risk tolerance for short-term money is zero.
-            </p>
-            <ul className="mt-3 space-y-1.5 text-sm text-ink-mid">
-              <li>• High-yield savings (4-5% APY)</li>
-              <li>• Money market funds</li>
-              <li>• Treasury bills and CDs for fixed dates</li>
-            </ul>
-            <p className="mt-3 text-xs text-ink-faint">
-              An emergency fund in stocks during a crash forces selling at a loss.
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-warn-soft border border-warn-line px-4 py-3 text-sm text-warn-ink">
-          <strong>Before you try day trading:</strong> more than 70% of active traders underperform a
-          simple index fund over five years, and short-term gains are taxed as ordinary income. If
-          you want to learn by doing, paper trade with fake money first, and only consider real
-          money after six months of consistent paper profits.
-        </div>
-      </section>
-
-      {/* ── Section 4: patterns ── */}
-      <section id="patterns" className="scroll-mt-6 space-y-3">
-        <div>
-          <SectionLabel>Patterns worth knowing</SectionLabel>
-          <p className="mt-0.5 text-xs text-ink-faint">
-            What actually moves prices, and the psychology that loses students money.
-          </p>
-        </div>
-
-        <div className="bg-surface rounded-2xl border border-line p-6">
-          <h3 className="text-sm font-semibold text-ink">Market and chart patterns</h3>
-          <div className="mt-3 space-y-3">
-            {chartPatterns.map((p) => (
-              <div key={p.name} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-ink">{p.name}</p>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${signalStyles[p.signal]}`}>
-                    {p.signal} signal
-                  </span>
+              ) : (
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">The employer match is free money</h3>
+                    <p className="text-sm text-ink-mid mt-1">
+                      If an employer matches 50% of contributions up to 6% of salary, contributing 6% of a
+                      $50,000 salary ($3,000/yr) earns an extra $1,500 from the employer. That is a
+                      guaranteed 50% return before any market gains. Not capturing the full match leaves
+                      free money on the table.
+                    </p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">2026 contribution limit</div>
+                      <div className="mt-1 text-lg font-bold text-ink">$23,500/yr</div>
+                      <p className="text-xs text-ink-faint">Pre-tax dollars, through an employer plan</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-2 border border-line p-4">
+                      <div className="text-xs uppercase tracking-wide text-ink-faint">Traditional vs Roth 401k</div>
+                      <div className="mt-1 text-lg font-bold text-ink">Roth, early career</div>
+                      <p className="text-xs text-ink-faint">Same after-tax logic as the Roth IRA while your bracket is low</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-info-soft border border-info-line px-4 py-3 text-sm text-info-ink">
+                    Order of operations after graduation: contribute enough for the full employer match
+                    first, then max the Roth IRA, then come back to the 401k if you still have room.
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-ink-mid">{p.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-2xl border border-line p-6">
-          <h3 className="text-sm font-semibold text-ink">Behavioral traps</h3>
-          <p className="mt-1 text-xs text-ink-faint">These are risks, not tools. Each one has a one-line antidote.</p>
-          <div className="mt-3 space-y-3">
-            {behavioralTraps.map((t) => (
-              <div key={t.name} className="rounded-xl bg-surface-2 border border-line p-4">
-                <p className="text-sm font-semibold text-ink">{t.name}</p>
-                <p className="mt-0.5 text-sm text-ink-mid">{t.looks}</p>
-                <p className="mt-1 text-xs font-medium text-brand">{t.antidote}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Section 5: how much and how often ── */}
-      <section id="how-much" className="scroll-mt-6 space-y-3">
-        <div>
-          <SectionLabel>How much and how often</SectionLabel>
-          <p className="mt-0.5 text-xs text-ink-faint">
-            {income > 0
-              ? `Based on your ${fmtMoney(income)}/month income, your tier is highlighted.`
-              : 'Add your income in the Budget page to highlight your tier.'}
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-3">
-          {[
-            {
-              label: 'Under $500/mo',
-              amount: '$25-$50/month',
-              where: 'All of it into a Roth IRA target-date fund',
-              note: 'Habit formation matters more than the amount at this stage.',
-            },
-            {
-              label: '$500-$1,500/mo',
-              amount: '$50-$150/month',
-              where: 'Aim for 10% of take-home, all into the Roth IRA',
-              note: 'Adjust down if rent or loan payments make 10% impossible.',
-            },
-            {
-              label: 'Over $1,500/mo',
-              amount: '$150-$400/month',
-              where: 'Max the Roth IRA first, then a taxable brokerage',
-              note: 'Internship and co-op money is the classic source here.',
-            },
-          ].map((t, i) => (
-            <div
-              key={t.label}
-              className={`bg-surface rounded-2xl p-5 border ${
-                income > 0 && tier === i ? 'border-brand ring-1 ring-brand' : 'border-line'
-              }`}
-            >
-              <div className="text-xs uppercase tracking-wide text-ink-faint">{t.label}</div>
-              <div className="mt-1 text-lg font-bold text-ink">{t.amount}</div>
-              <p className="mt-1 text-sm text-ink-mid">{t.where}</p>
-              <p className="mt-2 text-xs text-ink-faint">{t.note}</p>
-              {income > 0 && tier === i && (
-                <span className="mt-3 inline-block rounded-full bg-brand-soft text-brand-ink px-2.5 py-0.5 text-xs font-medium">
-                  Your tier
-                </span>
               )}
             </div>
-          ))}
-        </div>
+          </TabPanel>
 
-        {/* DCA calculator */}
-        <div className="bg-surface rounded-2xl border border-line p-6">
-          <SectionLabel>What your monthly amount becomes</SectionLabel>
-          <p className="mt-1 text-xs text-ink-faint">
-            Dollar-cost averaging: the same amount every month, automated, regardless of what the
-            market is doing. Assumes a 7% average annual return.
-          </p>
-          <div className="mt-4 grid sm:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-baseline justify-between">
-                <label className="text-sm text-ink-mid">Monthly contribution</label>
-                <span className="text-xs text-ink-faint">{fmtMoney(dcaMonthly)}/mo</span>
+          {/* ── Tab 2: Stocks and funds ── */}
+          <TabPanel id="stocks" activeId={activeTab}>
+            <div id="stocks" className="space-y-4 scroll-mt-6">
+              <p className="text-xs text-ink-faint">
+                Not to make you a stock picker. To make sure you know what you are buying before you buy it.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {conceptCards.map((c) => (
+                  <div key={c.title} className="bg-surface-2 rounded-xl border border-line p-4">
+                    <h3 className="font-semibold text-sm text-ink">{c.title}</h3>
+                    <p className="mt-1 text-sm text-ink-mid">{c.body}</p>
+                    <p className="mt-2 text-xs font-medium text-brand">{c.why}</p>
+                  </div>
+                ))}
               </div>
-              <input
-                type="range"
-                min={10}
-                max={600}
-                step={5}
-                value={dcaMonthly}
-                onChange={(e) => setDcaMonthly(Number(e.target.value))}
-                className="mt-1 w-full accent-brand cursor-pointer"
-                aria-label="Monthly contribution slider"
-              />
-            </div>
-            <div>
-              <div className="flex items-baseline justify-between">
-                <label className="text-sm text-ink-mid">Starting age</label>
-                <span className="text-xs text-ink-faint">{dcaAge}</span>
+
+              <div className="overflow-x-auto rounded-2xl border border-line p-5">
+                <SectionLabel>Where to actually buy</SectionLabel>
+                <table className="w-full mt-3 text-sm">
+                  <thead>
+                    <tr className="text-xs text-ink-faint uppercase tracking-wide">
+                      <th className="text-left font-medium pb-1">Platform</th>
+                      <th className="text-left font-medium pb-1">Minimum</th>
+                      <th className="text-left font-medium pb-1">Fractional</th>
+                      <th className="text-left font-medium pb-1">Roth IRA</th>
+                      <th className="text-left font-medium pb-1">Best for</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {platforms.map((p) => (
+                      <tr key={p.name} className="border-t border-line">
+                        <td className="py-2.5 pr-3 font-medium text-ink">{p.name}</td>
+                        <td className="py-2.5 pr-3 text-ink-mid">{p.minimum}</td>
+                        <td className="py-2.5 pr-3 text-ink-mid">{p.fractional}</td>
+                        <td className="py-2.5 pr-3 text-ink-mid">{p.roth}</td>
+                        <td className="py-2.5 text-ink-faint">{p.bestFor}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <input
-                type="range"
-                min={18}
-                max={40}
-                step={1}
-                value={dcaAge}
-                onChange={(e) => setDcaAge(Number(e.target.value))}
-                className="mt-1 w-full accent-brand cursor-pointer"
-                aria-label="Starting age slider"
-              />
-            </div>
-          </div>
 
-          <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-1">
-            <div>
-              <div className="font-display text-4xl font-bold text-ink tabular-nums tracking-tight">{fmtMoney(dca.futureValue)}</div>
-              <div className="text-xs text-ink-faint">projected at age 65</div>
+              <div className="rounded-2xl border border-line p-5">
+                <SectionLabel>Starting from zero, in order</SectionLabel>
+                <div className="mt-4 space-y-3">
+                  {startingSteps.map((s, i) => (
+                    <div key={s.action} className="flex gap-3 items-start">
+                      <span className="shrink-0 w-7 h-7 rounded-full bg-brand-soft text-brand text-xs font-bold flex items-center justify-center mt-0.5">
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-ink">{s.action}</p>
+                        <p className="text-sm text-ink-mid">{s.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-ink-mid">
-              {fmtMoney(dca.contributed)} contributed + {fmtMoney(dca.growth)} growth
-            </div>
-          </div>
+          </TabPanel>
 
-          {decades.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {decades.map((d) => (
-                <div key={d.age} className="flex items-center gap-3">
-                  <span className="w-14 shrink-0 text-xs text-ink-faint">Age {d.age}</span>
-                  <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full bg-brand-line"
-                      style={{ width: `${(d.contributed / decadeMax) * 100}%` }}
-                    />
-                    <div
-                      className="h-full bg-brand"
-                      style={{ width: `${(d.growth / decadeMax) * 100}%` }}
+          {/* ── Tab 3: Long vs short term ── */}
+          <TabPanel id="horizon" activeId={activeTab}>
+            <div id="horizon" className="space-y-4 scroll-mt-6">
+              <p className="text-xs text-ink-faint">The five-year line decides where the money goes.</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="bg-surface-2 rounded-2xl border border-line p-5">
+                  <span className="inline-block rounded-full bg-ok-soft text-ok-ink px-2.5 py-0.5 text-xs font-medium">
+                    5+ years
+                  </span>
+                  <h3 className="mt-2 font-semibold text-sm text-ink">Buy and hold</h3>
+                  <p className="mt-1 text-sm text-ink-mid">
+                    Broad index funds held through every dip. Selling in a downturn locks in the loss,
+                    holding through it has historically recovered and then some.
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-ink-mid">
+                    <li>• Core: VTI or VOO (60-80%)</li>
+                    <li>• International like VXUS (10-20%)</li>
+                    <li>• Bonds like BND as the goal gets closer</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-ink-faint">
+                    Tax bonus: in the 10-12% bracket, long-term capital gains are taxed at 0%.
+                  </p>
+                </div>
+                <div className="bg-surface-2 rounded-2xl border border-line p-5">
+                  <span className="inline-block rounded-full bg-info-soft text-info-ink px-2.5 py-0.5 text-xs font-medium">
+                    Under 5 years
+                  </span>
+                  <h3 className="mt-2 font-semibold text-sm text-ink">Keep it out of stocks</h3>
+                  <p className="mt-1 text-sm text-ink-mid">
+                    Money for a down payment, grad school, or a major purchase cannot ride out a 30% down
+                    year. The risk tolerance for short-term money is zero.
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-ink-mid">
+                    <li>• High-yield savings (4-5% APY)</li>
+                    <li>• Money market funds</li>
+                    <li>• Treasury bills and CDs for fixed dates</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-ink-faint">
+                    An emergency fund in stocks during a crash forces selling at a loss.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-xl bg-warn-soft border border-warn-line px-4 py-3 text-sm text-warn-ink">
+                <strong>Before you try day trading:</strong> more than 70% of active traders underperform a
+                simple index fund over five years, and short-term gains are taxed as ordinary income. If
+                you want to learn by doing, paper trade with fake money first, and only consider real
+                money after six months of consistent paper profits.
+              </div>
+            </div>
+          </TabPanel>
+
+          {/* ── Tab 4: Patterns ── */}
+          <TabPanel id="patterns" activeId={activeTab}>
+            <div id="patterns" className="space-y-4 scroll-mt-6">
+              <p className="text-xs text-ink-faint">
+                What actually moves prices, and the psychology that loses students money.
+              </p>
+
+              <div className="rounded-2xl border border-line p-5">
+                <h3 className="text-sm font-semibold text-ink">Market and chart patterns</h3>
+                <div className="mt-3 space-y-3">
+                  {chartPatterns.map((p) => (
+                    <div key={p.name} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-ink">{p.name}</p>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${signalStyles[p.signal]}`}>
+                          {p.signal} signal
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-ink-mid">{p.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-line p-5">
+                <h3 className="text-sm font-semibold text-ink">Behavioral traps</h3>
+                <p className="mt-1 text-xs text-ink-faint">These are risks, not tools. Each one has a one-line antidote.</p>
+                <div className="mt-3 space-y-3">
+                  {behavioralTraps.map((t) => (
+                    <div key={t.name} className="rounded-xl bg-surface-2 border border-line p-4">
+                      <p className="text-sm font-semibold text-ink">{t.name}</p>
+                      <p className="mt-0.5 text-sm text-ink-mid">{t.looks}</p>
+                      <p className="mt-1 text-xs font-medium text-brand">{t.antidote}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabPanel>
+
+          {/* ── Tab 5: How much and when (includes DCA calculator) ── */}
+          <TabPanel id="how-much" activeId={activeTab}>
+            <div id="how-much" className="space-y-4 scroll-mt-6">
+              <p className="text-xs text-ink-faint">
+                {income > 0
+                  ? `Based on your ${fmtMoney(income)}/month income, your tier is highlighted.`
+                  : 'Add your income in the Budget page to highlight your tier.'}
+              </p>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[
+                  {
+                    label: 'Under $500/mo',
+                    amount: '$25-$50/month',
+                    where: 'All of it into a Roth IRA target-date fund',
+                    note: 'Habit formation matters more than the amount at this stage.',
+                  },
+                  {
+                    label: '$500-$1,500/mo',
+                    amount: '$50-$150/month',
+                    where: 'Aim for 10% of take-home, all into the Roth IRA',
+                    note: 'Adjust down if rent or loan payments make 10% impossible.',
+                  },
+                  {
+                    label: 'Over $1,500/mo',
+                    amount: '$150-$400/month',
+                    where: 'Max the Roth IRA first, then a taxable brokerage',
+                    note: 'Internship and co-op money is the classic source here.',
+                  },
+                ].map((t, i) => (
+                  <div
+                    key={t.label}
+                    className={`bg-surface-2 rounded-2xl p-5 border ${
+                      income > 0 && tier === i ? 'border-brand ring-1 ring-brand' : 'border-line'
+                    }`}
+                  >
+                    <div className="text-xs uppercase tracking-wide text-ink-faint">{t.label}</div>
+                    <div className="mt-1 text-lg font-bold text-ink">{t.amount}</div>
+                    <p className="mt-1 text-sm text-ink-mid">{t.where}</p>
+                    <p className="mt-2 text-xs text-ink-faint">{t.note}</p>
+                    {income > 0 && tier === i && (
+                      <span className="mt-3 inline-block rounded-full bg-brand-soft text-brand-ink px-2.5 py-0.5 text-xs font-medium">
+                        Your tier
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* DCA calculator */}
+              <div className="rounded-2xl border border-line p-5">
+                <SectionLabel>What your monthly amount becomes</SectionLabel>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Dollar-cost averaging: the same amount every month, automated, regardless of what the
+                  market is doing. Assumes a 7% average annual return.
+                </p>
+                <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-sm text-ink-mid">Monthly contribution</label>
+                      <span className="text-xs text-ink-faint">{fmtMoney(dcaMonthly)}/mo</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={600}
+                      step={5}
+                      value={dcaMonthly}
+                      onChange={(e) => setDcaMonthly(Number(e.target.value))}
+                      className="mt-1 w-full accent-brand cursor-pointer"
+                      aria-label="Monthly contribution slider"
                     />
                   </div>
-                  <span className="w-20 shrink-0 text-right text-xs text-ink-mid">
-                    {fmtMoney(d.contributed + d.growth)}
-                  </span>
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-sm text-ink-mid">Starting age</label>
+                      <span className="text-xs text-ink-faint">{dcaAge}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={18}
+                      max={40}
+                      step={1}
+                      value={dcaAge}
+                      onChange={(e) => setDcaAge(Number(e.target.value))}
+                      className="mt-1 w-full accent-brand cursor-pointer"
+                      aria-label="Starting age slider"
+                    />
+                  </div>
                 </div>
-              ))}
-              <div className="flex gap-4 pt-1 text-xs text-ink-faint">
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-line" /> contributed
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand" /> growth
-                </span>
+
+                <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                  <div>
+                    <div className="font-display text-4xl font-bold text-ink tabular-nums tracking-tight">
+                      {fmtMoney(dca.futureValue)}
+                    </div>
+                    <div className="text-xs text-ink-faint">projected at age 65</div>
+                  </div>
+                  <div className="text-sm text-ink-mid">
+                    {fmtMoney(dca.contributed)} contributed + {fmtMoney(dca.growth)} growth
+                  </div>
+                </div>
+
+                {decades.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {decades.map((d) => (
+                      <div key={d.age} className="flex items-center gap-3">
+                        <span className="w-14 shrink-0 text-xs text-ink-faint">Age {d.age}</span>
+                        <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-surface-2">
+                          <div
+                            className="h-full bg-brand-line"
+                            style={{ width: `${(d.contributed / decadeMax) * 100}%` }}
+                          />
+                          <div
+                            className="h-full bg-brand"
+                            style={{ width: `${(d.growth / decadeMax) * 100}%` }}
+                          />
+                        </div>
+                        <span className="w-20 shrink-0 text-right text-xs text-ink-mid">
+                          {fmtMoney(d.contributed + d.growth)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex gap-4 pt-1 text-xs text-ink-faint">
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-line" /> contributed
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand" /> growth
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-4 text-xs text-ink-faint">
+                  The single most important rule: never stop contributing during a downturn. Those are the
+                  months your fixed amount buys the most shares.
+                </p>
+              </div>
+
+              {/* Rule of thumb */}
+              <div className="rounded-xl bg-brand-soft border border-brand-line p-5">
+                <h3 className="font-semibold text-sm text-brand-ink">The rule of thumb that covers most situations</h3>
+                <p className="mt-2 text-sm text-brand-ink">
+                  Invest at least 10% of every dollar you earn. Earning $800/month means $80: put $50 on
+                  an automated monthly schedule into a Roth IRA, hold $30 in high-yield savings toward a
+                  brokerage account once it reaches $500. Scale the proportions as income grows. A
+                  windfall (tax refund, gift, sold item) can go in as a lump sum, which historically beats
+                  drip-feeding it about two-thirds of the time.
+                </p>
+              </div>
+
+              {/* Compound table */}
+              <div className="overflow-x-auto rounded-2xl border border-line p-5">
+                <SectionLabel>From age 20 to 65 at 7%</SectionLabel>
+                <table className="w-full mt-3 text-sm">
+                  <thead>
+                    <tr className="text-xs text-ink-faint uppercase tracking-wide">
+                      <th className="text-left font-medium pb-1">Monthly</th>
+                      <th className="text-right font-medium pb-1">At age 65</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {growthTable.map((g) => (
+                      <tr key={g.monthly} className="border-t border-line">
+                        <td className="py-2.5 pr-3 text-ink-mid">{fmtMoney(g.monthly)}/month</td>
+                        <td className="py-2.5 text-right font-medium text-ink">about {fmtMoney(g.at65)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-2 text-xs text-ink-faint">
+                  Assumes no increase in contributions over time. Starting at $50 and raising it as income
+                  grows will land well above these figures.
+                </p>
               </div>
             </div>
-          )}
+          </TabPanel>
 
-          <p className="mt-4 text-xs text-ink-faint">
-            The single most important rule: never stop contributing during a downturn. Those are the
-            months your fixed amount buys the most shares.
-          </p>
-        </div>
-
-        {/* Rule of thumb */}
-        <div className="rounded-xl bg-brand-soft border border-brand-line p-5">
-          <h3 className="font-semibold text-sm text-brand-ink">The rule of thumb that covers most situations</h3>
-          <p className="mt-2 text-sm text-brand-ink">
-            Invest at least 10% of every dollar you earn. Earning $800/month means $80: put $50 on
-            an automated monthly schedule into a Roth IRA, hold $30 in high-yield savings toward a
-            brokerage account once it reaches $500. Scale the proportions as income grows. A
-            windfall (tax refund, gift, sold item) can go in as a lump sum, which historically beats
-            drip-feeding it about two-thirds of the time.
-          </p>
-        </div>
-
-        {/* Compound table */}
-        <div className="bg-surface rounded-2xl border border-line p-6 overflow-x-auto">
-          <SectionLabel>From age 20 to 65 at 7%</SectionLabel>
-          <table className="w-full mt-3 text-sm">
-            <thead>
-              <tr className="text-xs text-ink-faint uppercase tracking-wide">
-                <th className="text-left font-medium pb-1">Monthly</th>
-                <th className="text-right font-medium pb-1">At age 65</th>
-              </tr>
-            </thead>
-            <tbody>
-              {growthTable.map((g) => (
-                <tr key={g.monthly} className="border-t border-line">
-                  <td className="py-2.5 pr-3 text-ink-mid">{fmtMoney(g.monthly)}/month</td>
-                  <td className="py-2.5 text-right font-medium text-ink">about {fmtMoney(g.at65)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-xs text-ink-faint">
-            Assumes no increase in contributions over time. Starting at $50 and raising it as income
-            grows will land well above these figures.
-          </p>
-        </div>
-      </section>
+        </Tabs>
+      </div>
 
       {/* Bottom banner */}
       <div className="rounded-2xl bg-brand-soft border border-brand-line p-6 text-center">
@@ -696,8 +709,7 @@ export default function Invest() {
       </div>
 
       <p className="text-xs text-ink-faint">
-        Educational content, not personalized financial advice. Returns shown use historical
-        averages and are not guaranteed. Contribution limits are for 2026 and change over time.
+        Returns shown use historical averages and are not guaranteed. Contribution limits are for 2026 and change over time.
       </p>
     </div>
   )

@@ -84,10 +84,14 @@ export default function ChatPanel({ profile, coach, starters = [], initialMessag
     <div className={`bg-surface rounded-2xl shadow-sm border border-line flex flex-col ${className ?? 'h-[32rem]'}`}>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-sm text-ink-faint">
-            Hey, I'm your money coach, grounded in <em>your</em> actual numbers. Ask me anything,
-            or try one of these:
-          </p>
+          <div className="flex flex-col items-center justify-center h-full text-center py-8 gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <p className="text-sm text-ink-faint max-w-xs leading-relaxed">
+              Ask anything about budgeting, credit, investing, or your goals. No question is too basic.
+            </p>
+          </div>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>

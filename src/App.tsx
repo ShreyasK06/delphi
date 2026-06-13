@@ -12,7 +12,10 @@ import Goals from './pages/Goals'
 import Invest from './pages/Invest'
 import ExtraCash from './pages/ExtraCash'
 import Discounts from './pages/Discounts'
+import CreditCards from './pages/CreditCards'
 import Coach from './pages/Coach'
+import Learn from './pages/Learn'
+import Portfolio from './pages/Portfolio'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -65,9 +68,12 @@ export default function App() {
               <Route path="/debt" element={<DebtPlanner />} />
               <Route path="/goals" element={<Goals />} />
               <Route path="/invest" element={<Invest />} />
+              <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/extra-cash" element={<ExtraCash />} />
               <Route path="/windfall" element={<Navigate to="/extra-cash" replace />} />
               <Route path="/discounts" element={<Discounts />} />
+              <Route path="/credit-cards" element={<CreditCards />} />
+              <Route path="/learn" element={<Learn />} />
               <Route path="/coach" element={<Coach />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

@@ -1,7 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { useProfile } from '../hooks/useProfile'
 
 const FEATURES = [
   'Budget Builder',
@@ -40,7 +39,6 @@ function FloatingCard({
 function AuthCard() {
   const navigate = useNavigate()
   const { login, signup } = useAuth()
-  const { state } = useProfile()
   const [mode, setMode] = useState<'signup' | 'login'>('signup')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -65,7 +63,7 @@ function AuthCard() {
       ? "You haven't confirmed your email yet. Check your inbox for the link we sent."
       : result
     setError(mappedError)
-    if (!mappedError) navigate(state ? '/dashboard' : '/onboarding')
+    if (!mappedError) navigate('/dashboard')
   }
 
   const inputCls =
@@ -138,11 +136,10 @@ function AuthCard() {
 
 export default function Landing() {
   const { user } = useAuth()
-  const { state } = useProfile()
   const heroRef = useRef<HTMLDivElement>(null)
   const [parallax, setParallax] = useState({ x: 0, y: 0 })
 
-  if (user) return <Navigate to={state ? '/dashboard' : '/onboarding'} replace />
+  if (user) return <Navigate to="/dashboard" replace />
 
   const onMouseMove = (e: React.MouseEvent) => {
     const rect = heroRef.current?.getBoundingClientRect()

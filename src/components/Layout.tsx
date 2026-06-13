@@ -11,11 +11,14 @@ import {
   TrendUpIcon,
   GiftIcon,
   TagIcon,
+  CreditCardIcon,
+  BookOpenIcon,
   ChatIcon,
   LogoutIcon,
   SunIcon,
   MoonIcon,
   MonitorIcon,
+  ChartLineIcon,
 } from './icons'
 
 const navItems = [
@@ -24,8 +27,11 @@ const navItems = [
   { to: '/debt', label: 'Debt Planner', Icon: TrendDownIcon },
   { to: '/goals', label: 'Goals', Icon: TargetIcon },
   { to: '/invest', label: 'Invest', Icon: TrendUpIcon },
+  { to: '/portfolio', label: 'Portfolio', Icon: ChartLineIcon },
   { to: '/extra-cash', label: 'Extra Cash', Icon: GiftIcon },
   { to: '/discounts', label: 'Discounts', Icon: TagIcon },
+  { to: '/credit-cards', label: 'Credit Cards', Icon: CreditCardIcon },
+  { to: '/learn', label: 'Learn', Icon: BookOpenIcon },
   { to: '/coach', label: 'Coach', Icon: ChatIcon },
 ]
 
@@ -199,6 +205,9 @@ export default function Layout() {
 
       <main className="md:ml-[17rem] px-4 md:px-8 py-6">
         <Outlet />
+        <p className="mt-10 text-xs text-ink-faint text-center pb-6">
+          delphi is an educational tool, not a licensed financial advisor.
+        </p>
       </main>
 
       <CoachWidget />
