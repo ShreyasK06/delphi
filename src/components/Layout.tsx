@@ -101,6 +101,24 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('delphi_sidebar_collapsed') === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleSidebar = () =>
+    setCollapsed((c) => {
+      const next = !c
+      try {
+        localStorage.setItem('delphi_sidebar_collapsed', next ? '1' : '0')
+      } catch {
+        // ignore storage errors
+      }
+      return next
+    })
+
   const onLogout = async () => {
     await logout()
     navigate('/')
@@ -126,18 +144,54 @@ export default function Layout() {
       </div>
 
       {/* floating translucent sidebar (desktop), always-dark brand chrome */}
-      <aside className="hidden md:flex flex-col fixed left-4 top-4 bottom-4 w-60 rounded-3xl bg-[#04231c]/80 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-950/30 text-white z-40 overflow-hidden">
-        <div className="px-5 py-5 border-b border-white/10">
-          <Wordmark />
-          <div className="mt-1.5 text-[11px] text-emerald-100/50">money, decoded for college</div>
+      <aside
+        className={`hidden md:flex flex-col fixed left-4 top-4 bottom-4 rounded-3xl bg-[#04231c]/80 backdrop-blur-xl border border-white/10 shadow-2xl shadow-emerald-950/30 text-white z-40 overflow-hidden transition-[width] duration-200 ${
+          collapsed ? 'w-[4.5rem]' : 'w-60'
+        }`}
+      >
+        <div className={`border-b border-white/10 ${collapsed ? 'px-3 py-4 flex justify-center' : 'px-5 py-5'}`}>
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              aria-expanded={false}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-black text-white text-lg hover:scale-105 transition-transform"
+            >
+              d
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="Collapse sidebar"
+                  aria-label="Collapse sidebar"
+                  aria-expanded={true}
+                  className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-black text-white text-lg hover:scale-105 transition-transform shrink-0"
+                >
+                  d
+                </button>
+                <span className="font-display font-bold tracking-tight text-white text-lg">
+                  delphi<span className="text-emerald-400">.</span>
+                </span>
+              </div>
+              <div className="mt-1.5 text-[11px] text-emerald-100/50">money, decoded for college</div>
+            </>
+          )}
         </div>
         <nav className="flex flex-col px-3 py-3 gap-1 flex-1">
           {navItems.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
+              title={collapsed ? label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors ${
+                `flex items-center rounded-xl py-2.5 text-sm transition-colors ${
+                  collapsed ? 'justify-center px-0' : 'gap-3 px-3.5'
+                } ${
                   isActive
                     ? 'bg-white/15 text-white font-semibold'
                     : 'text-emerald-100/70 hover:bg-white/8 hover:text-white'
@@ -145,32 +199,54 @@ export default function Layout() {
               }
             >
               <Icon />
-              {label}
+              {!collapsed && label}
             </NavLink>
           ))}
         </nav>
-        <div className="px-3 pb-4 space-y-2">
-          <ThemeToggle />
-          <div className="flex items-center gap-2.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-xs font-bold uppercase shrink-0">
-              {user?.name?.[0] ?? '?'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold truncate">{user?.name}</div>
-              <div className="text-[11px] text-emerald-100/50 truncate">{user?.email}</div>
-            </div>
-            <button
-              type="button"
-              onClick={onLogout}
-              aria-label="Log out"
-              className="text-emerald-100/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
-            >
-              <LogoutIcon />
-            </button>
-          </div>
-          <p className="px-1 text-[10px] text-emerald-100/40 leading-snug">
-            Educational tool, not a licensed advisor. Your data stays private to your account.
-          </p>
+        <div className={`pb-4 ${collapsed ? 'px-2 flex flex-col items-center gap-2' : 'px-3 space-y-2'}`}>
+          <ThemeToggle compact={collapsed} />
+          {collapsed ? (
+            <>
+              <div
+                title={user?.name}
+                className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-xs font-bold uppercase"
+              >
+                {user?.name?.[0] ?? '?'}
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                aria-label="Log out"
+                title="Log out"
+                className="text-emerald-100/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <LogoutIcon />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                  {user?.name?.[0] ?? '?'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold truncate">{user?.name}</div>
+                  <div className="text-[11px] text-emerald-100/50 truncate">{user?.email}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  aria-label="Log out"
+                  className="text-emerald-100/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+                >
+                  <LogoutIcon />
+                </button>
+              </div>
+              <p className="px-1 text-[10px] text-emerald-100/40 leading-snug">
+                Educational tool, not a licensed advisor. Your data stays private to your account.
+              </p>
+            </>
+          )}
         </div>
       </aside>
 
@@ -203,7 +279,11 @@ export default function Layout() {
         </nav>
       </header>
 
-      <main className="md:ml-[17rem] px-4 md:px-8 py-6">
+      <main
+        className={`px-4 md:px-8 py-6 transition-[margin] duration-200 ${
+          collapsed ? 'md:ml-[6rem]' : 'md:ml-[17rem]'
+        }`}
+      >
         <Outlet />
         <p className="mt-10 text-xs text-ink-faint text-center pb-6">
           delphi is an educational tool, not a licensed financial advisor.
