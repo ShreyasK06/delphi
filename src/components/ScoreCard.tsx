@@ -1,5 +1,5 @@
 import type { ScoreResult, ScoreSnapshot } from '../types'
-import { scoreLabel } from '../lib/score'
+import { scoreLabel, scoreDescription } from '../lib/score'
 
 function scoreColor(score: number): string {
   if (score >= 65) return 'text-ok'
@@ -35,6 +35,7 @@ export default function ScoreCard({ result, history = [], compact = false }: Pro
             <span className="text-ink-faint text-lg">/100</span>
             <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-ink-mid">{scoreLabel(result.total)}</span>
           </div>
+          <p className="mt-1 text-xs text-ink-faint">{scoreDescription(result.total)}</p>
           {prev && delta !== 0 && (
             <p className="mt-2 text-sm text-ink-mid">
               {delta > 0 ? (

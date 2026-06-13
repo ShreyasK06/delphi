@@ -1,8 +1,42 @@
+export type AssetType = 'stock' | 'etf' | 'crypto'
+
+export type CardRewardType = 'cashback' | 'flat-cashback' | 'dining' | 'travel' | 'builder'
+
+export interface CustomCard {
+  id: string
+  name: string
+  issuer?: string
+  rewardType: CardRewardType
+  tier: number // 1-4, parallels stage
+}
+
+export interface Holding {
+  id: string
+  symbol: string          // uppercase ticker, e.g. AAPL, VOO, BTC-USD
+  name?: string           // display name resolved from the API
+  assetType: AssetType
+  shares: number
+  buyPrice: number        // price per share/coin at purchase, USD
+  purchaseDate: string    // YYYY-MM-DD
+}
+
 export interface DebtItem {
   id: string
   type: string
   balance: number
   rate: number
+}
+
+export interface Contribution {
+  id: string
+  amount: number
+  date: string // ISO string; amount may be negative for a withdrawal/correction
+}
+
+export interface ScoreReading {
+  id: string
+  score: number
+  date: string // ISO string
 }
 
 export interface Goal {
@@ -11,6 +45,11 @@ export interface Goal {
   amount: number
   saved: number
   by: string
+  type?: 'savings' | 'debt' | 'credit' | 'income' | 'spending'
+  behaviors_done?: string[]
+  contributions?: Contribution[]   // money goals: incremental progress log
+  score_log?: ScoreReading[]       // credit goals: history of logged credit-score readings
+  start_score?: number             // credit goals: baseline score captured at creation
 }
 
 export interface MonthlyExpenses {
@@ -42,10 +81,23 @@ export interface Profile {
   school_year: SchoolYear | ''
   has_fafsa: boolean
   has_credit_card: boolean
+  owned_cards?: string[]           // names of specific credit cards the user already holds
+  custom_cards?: CustomCard[]      // cards not in the catalog, with structured metadata
   has_retirement_account: boolean
   custom_expenses: CustomExpense[]
   hidden_expense_fields?: (keyof MonthlyExpenses)[]
   quiz_answers: Record<string, string>
+  // Credit and habits fields (added for new score engine)
+  payment_history?: 'perfect' | 'one_miss' | 'two_misses' | 'three_plus' | ''
+  bills_on_time?: ('credit_card' | 'rent' | 'phone_utilities')[]
+  has_autopay?: boolean
+  credit_utilization?: 'no_card' | 'under_10' | '10_30' | '30_50' | 'over_50' | ''
+  knows_credit_score?: boolean
+  knows_loan_terms?: boolean
+  knows_card_apr?: boolean
+  oldest_account_6mo?: boolean
+  no_new_credit_6mo?: boolean
+  investments?: Holding[]
 }
 
 export interface ScoreCategory {
@@ -104,9 +156,21 @@ export const emptyProfile: Profile = {
   school_year: '',
   has_fafsa: false,
   has_credit_card: false,
+  owned_cards: [],
+  custom_cards: [],
   has_retirement_account: false,
   custom_expenses: [],
   quiz_answers: {},
+  payment_history: '',
+  bills_on_time: [],
+  has_autopay: false,
+  credit_utilization: '',
+  knows_credit_score: false,
+  knows_loan_terms: false,
+  knows_card_apr: false,
+  oldest_account_6mo: false,
+  no_new_credit_6mo: true,
+  investments: [],
 }
 
 export function fmtMoney(n: number): string {

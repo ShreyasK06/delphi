@@ -69,12 +69,19 @@ function goalsReply(p: Profile): string {
     return 'No goals on file yet. Give me one with a number and a date, "$800 spring break trip by March", and I\'ll tell you exactly what to set aside each week.'
   }
   const lines = p.goals.map((g) => {
+    const isCreditGoal = (g.type ?? 'savings') === 'credit'
+    if (isCreditGoal) {
+      const done = (g.behaviors_done ?? []).length
+      const total = 5
+      const currentStr = g.saved ? ` (currently at ${g.saved})` : ''
+      return `• **${g.name}**: score goal targeting ${g.amount}${currentStr}. ${done}/${total} behaviors completed.`
+    }
     const plan = planGoal(g, p)
     if (plan.remaining <= 0) return `• **${g.name}**: fully funded 🎉`
     const base = `• **${g.name}**: ${fmtMoney(g.saved)} of ${fmtMoney(g.amount)} saved (${Math.round(plan.progressPct)}%). Needs ${fmtMoney(plan.monthlyNeeded)}/month for ${plan.monthsLeft || 'under a'} month${plan.monthsLeft === 1 ? '' : 's'}.`
     return plan.feasible
       ? base
-      : `${base} ⚠️ That's more than your ${fmtMoney(monthlySurplus(p))}/month surplus, ${plan.adjustedMonths ? `a ${plan.adjustedMonths}-month timeline would fit your budget` : 'we need to free up budget first'}.`
+      : `${base} That's more than your ${fmtMoney(monthlySurplus(p))}/month surplus, ${plan.adjustedMonths ? `a ${plan.adjustedMonths}-month timeline would fit your budget` : 'we need to free up budget first'}.`
   })
   return [`Here's where your goals stand:`, lines.join('\n')].join('\n\n')
 }

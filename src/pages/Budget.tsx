@@ -127,11 +127,11 @@ function AllocationBar({ plan }: { plan: Profile }) {
   const over = budget.leftover < 0
   return (
     <div className="bg-surface rounded-2xl border border-line p-6">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between mb-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Where each dollar goes</h2>
         <span className="text-xs text-ink-faint">targets: 50 / 30 / 20</span>
       </div>
-      <div className="mt-3 flex h-4 w-full overflow-hidden rounded-full bg-surface-2">
+      <div className="flex h-4 w-full overflow-hidden rounded-full bg-surface-2">
         <div className="h-full bg-brand transition-all duration-300" style={{ width: `${needsPct}%` }} />
         <div className="h-full bg-info transition-all duration-300" style={{ width: `${wantsPct}%` }} />
         <div className={`h-full transition-all duration-300 ${over ? 'bg-bad' : 'bg-ok'}`} style={{ width: `${leftPct}%` }} />
@@ -282,18 +282,19 @@ export default function Budget() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Budget</h1>
-          <p className="text-sm text-ink-faint">
-            The 50/30/20 framework adapted for college: needs / wants / savings and debt payoff.
+          <p className="text-[11px] font-semibold tracking-wider text-brand uppercase mb-1">PLAN</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Budget</h1>
+          <p className="text-sm text-ink-faint max-w-2xl mt-1">
+            The 50/30/20 framework adapted for college: needs, wants, savings and debt payoff.
           </p>
         </div>
         {!editing && (
           <button
             onClick={() => { setDraft(structuredClone(state.profile)); setEditing(true) }}
-            className="shrink-0 rounded-xl border border-line-strong px-3 py-2 text-sm font-medium text-ink-mid hover:border-brand hover:text-brand transition-colors"
+            className="shrink-0 rounded-xl border border-line-strong px-3 py-2 text-sm font-medium text-ink-mid hover:border-brand hover:text-brand transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             Edit numbers
           </button>
@@ -304,20 +305,20 @@ export default function Budget() {
 
       {/* Summary tiles */}
       <div id="overview" className="grid sm:grid-cols-3 gap-3 scroll-mt-6">
-        <div className="bg-surface rounded-xl border border-line p-5">
-          <div className="text-xs uppercase tracking-wide text-ink-faint">Income</div>
+        <div className="bg-surface rounded-xl border border-line p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Income</div>
           <div className="mt-1 font-display text-2xl font-bold text-ink tabular-nums">
             {fmtMoney(budget.income)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
         </div>
-        <div className="bg-surface rounded-xl border border-line p-5">
-          <div className="text-xs uppercase tracking-wide text-ink-faint">Spending</div>
+        <div className="bg-surface rounded-xl border border-line p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Spending</div>
           <div className="mt-1 font-display text-2xl font-bold text-ink tabular-nums">
             {fmtMoney(budget.totalSpent)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
         </div>
-        <div className="bg-surface rounded-xl border border-line p-5">
-          <div className="text-xs uppercase tracking-wide text-ink-faint">Left over</div>
+        <div className="bg-surface rounded-xl border border-line p-4">
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Left over</div>
           <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${budget.leftover >= 0 ? 'text-ok' : 'text-bad'}`}>
             {fmtMoney(budget.leftover)}<span className="text-sm font-normal text-ink-faint">/mo</span>
           </div>
@@ -386,7 +387,7 @@ export default function Budget() {
                     onClick={() => hideField(key)}
                     title={`Remove ${label}`}
                     aria-label={`Remove ${label}`}
-                    className="mt-0.5 shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-ink-faint hover:bg-bad-soft hover:text-bad transition-colors text-sm leading-none"
+                    className="mt-0.5 shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-ink-faint hover:bg-bad-soft hover:text-bad transition-colors text-sm leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   >
                     ×
                   </button>
@@ -462,7 +463,7 @@ export default function Budget() {
 
       {/* Budget tables (read mode) */}
       {!editing && (
-        <div id="breakdown" className="space-y-5 scroll-mt-6">
+        <div id="breakdown" className="space-y-6 scroll-mt-6">
           <BudgetTable budget={budget} />
           <BudgetTable budget={budget} detailed />
         </div>
@@ -572,27 +573,27 @@ export default function Budget() {
         )}
       </section>
 
-      {/* Category guidance */}
-      <div id="guide" className="bg-surface rounded-2xl border border-line p-6 scroll-mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">What each category means</h2>
-        <p className="mt-1 text-xs text-ink-faint">College budgets rarely fit textbook ratios and that is fine.</p>
-        <div className="mt-4 space-y-4">
+      {/* Category guidance -- reference card with left accent border */}
+      <div id="guide" className="bg-surface-2/50 rounded-2xl border-l-2 border-brand-line border border-line p-6 scroll-mt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint mb-3">What each category means</h2>
+        <p className="text-xs text-ink-faint mb-4">College budgets rarely fit textbook ratios and that is fine.</p>
+        <div className="space-y-4">
           {categories.map((c) => (
             <div key={c.name} className="flex gap-3">
               <div className="shrink-0 w-1 rounded-full bg-brand-line self-stretch" />
               <div>
                 <p className="text-sm font-semibold text-ink">{c.name}</p>
-                <p className="text-sm text-ink-mid">{c.description}</p>
+                <p className="text-sm text-ink-mid leading-relaxed">{c.description}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 50/30/20 rule */}
+      {/* 50/30/20 rule -- reference callout */}
       <div className="rounded-xl bg-brand-soft border border-brand-line p-5">
         <h3 className="font-semibold text-sm text-brand-ink">The 50/30/20 rule for college</h3>
-        <p className="mt-2 text-sm text-brand-ink">
+        <p className="mt-2 text-sm text-brand-ink leading-relaxed">
           50% to needs (rent, food, transportation, utilities), 30% to wants (going out,
           entertainment, subscriptions), 20% to savings and debt payoff. These are targets, not
           requirements. A student with high rent may run 60/20/20 and that is still healthy as long

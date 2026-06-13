@@ -1,5 +1,5 @@
 import type { Profile, ScoreCategory, ScoreResult } from '../types'
-import { totalExpenses, essentialExpenses, totalDebt, monthlySurplus, fmtMoney } from '../types'
+import { totalExpenses, totalCustomExpenses, fmtMoney } from '../types'
 
 export const knowledgeQuiz = [
   {
@@ -59,173 +59,344 @@ export const knowledgeQuiz = [
   },
 ]
 
-function expenseRatioScore(p: Profile): ScoreCategory {
-  const income = p.monthly_income
-  const expenses = totalExpenses(p.monthly_expenses)
-  const ratio = income > 0 ? expenses / income : Infinity
-  let points: number
-  let note: string
-  if (ratio < 0.8) {
-    points = 20
-    note = `You spend ${Math.round(ratio * 100)}% of your income, healthy breathing room.`
-  } else if (ratio <= 0.9) {
-    points = 12
-    note = `Expenses are ${Math.round(ratio * 100)}% of income, a little tight.`
-  } else if (ratio <= 1.0) {
-    points = 6
-    note = `Expenses are ${Math.round(ratio * 100)}% of income, nearly every dollar is spoken for.`
-  } else {
-    points = 0
-    note = income > 0
-      ? `You're spending more than you bring in each month.`
-      : `No income on file yet, everything out is unfunded.`
-  }
-  return { key: 'expense_ratio', label: 'Expense-to-Income Ratio', points, max: 20, note }
+export function knowledgeLevel(p: Profile): { correct: number; total: number } {
+  const total = knowledgeQuiz.length
+  const correct = knowledgeQuiz.reduce((count, q) => {
+    const answer = (p.quiz_answers ?? {})[q.id]
+    return answer !== undefined && Number(answer) === q.correct ? count + 1 : count
+  }, 0)
+  return { correct, total }
 }
 
-function emergencyFundScore(p: Profile): ScoreCategory {
-  const essentials = essentialExpenses(p.monthly_expenses)
-  const months = essentials > 0 ? p.emergency_fund / essentials : p.emergency_fund > 0 ? 3 : 0
-  let points: number
+// 1. PAYMENT BEHAVIOR — 25 pts
+function paymentBehaviorScore(p: Profile): ScoreCategory {
+  let points = 0
+
+  // On-time payment rate over last 6 months: up to 15 pts
+  const ph = p.payment_history ?? ''
+  if (ph === 'perfect') points += 15
+  else if (ph === 'one_miss') points += 10
+  else if (ph === 'two_misses') points += 5
+  // three_plus or '' = 0
+
+  // Types of bills paid on time: up to 6 pts (2 each)
+  const bills = p.bills_on_time ?? []
+  if (bills.includes('credit_card')) points += 2
+  if (bills.includes('rent')) points += 2
+  if (bills.includes('phone_utilities')) points += 2
+
+  // Auto-pay enrollment: 4 pts
+  if (p.has_autopay) points += 4
+
+  let note: string
+  if (ph === 'perfect') {
+    note = `Perfect payment record over the last 6 months${p.has_autopay ? ', and autopay is set up' : ''}. Keep it going.`
+  } else if (ph === 'one_miss') {
+    note = `One missed payment in 6 months. Setting up autopay prevents these from happening again.`
+  } else if (ph === 'two_misses') {
+    note = `Two missed payments in 6 months. Autopay on even one bill locks in points and protects your credit.`
+  } else if (ph === 'three_plus') {
+    note = `Three or more missed payments is a real credit risk. Start with one autopay setup this week.`
+  } else {
+    note = `Payment history not filled in yet. This is the highest-weight category at 25 points.`
+  }
+
+  return { key: 'payment_behavior', label: 'Payment Behavior', points, max: 25, note }
+}
+
+// 2. SPENDING CONTROL — 20 pts
+function spendingControlScore(p: Profile): ScoreCategory {
+  let points = 0
+  const income = p.monthly_income
+  const totalExp = totalExpenses(p.monthly_expenses)
+  const totalCust = totalCustomExpenses(p)
+  const totalSpend = totalExp + totalCust
+
+  // Has a tracked budget: 5 pts (total expenses + custom expenses > 0)
+  const hasBudget = totalSpend > 0
+  if (hasBudget) points += 5
+
+  // Spending within income last month: up to 8 pts
+  if (income > 0) {
+    const ratio = totalSpend / income
+    if (ratio <= 1.0) points += 8
+    else if (ratio <= 1.1) points += 4
+    // else 0
+  }
+
+  // Discretionary as % of take-home: up to 7 pts
+  // Discretionary = subscriptions + going_out + other + custom expenses
+  const discretionary = p.monthly_expenses.subscriptions + p.monthly_expenses.going_out + p.monthly_expenses.other + totalCust
+  if (income > 0) {
+    const discPct = discretionary / income
+    if (discPct < 0.30) points += 7
+    else if (discPct <= 0.40) points += 4
+    else points += 1
+  }
+
+  let note: string
+  if (income === 0) {
+    note = 'Add your monthly income so spending control can be calculated.'
+  } else {
+    const spendPct = Math.round((totalSpend / income) * 100)
+    const discPct = Math.round((discretionary / income) * 100)
+    note = `Spending is ${spendPct}% of income. Discretionary (subscriptions, going out, other) is ${discPct}% of take-home.`
+    if (!hasBudget) note = 'No expenses entered yet. Filling in your budget unlocks 5 points here.'
+  }
+
+  return { key: 'spending_control', label: 'Spending Control', points, max: 20, note }
+}
+
+// 3. EMERGENCY SAVINGS — 5 pts
+function emergencySavingsScore(p: Profile): ScoreCategory {
+  let points = 0
+
+  // Has any emergency fund: 2 pts
+  if (p.emergency_fund > 0) points += 2
+
+  // Fund size relative to total monthly expenses
+  if (p.emergency_fund > 0) {
+    const totalExp = totalExpenses(p.monthly_expenses) + totalCustomExpenses(p)
+    if (totalExp > 0) {
+      const weeks = (p.emergency_fund / totalExp) * 4 // approximate weeks of coverage
+      if (weeks < 2) points += 1          // less than 2 weeks
+      else if (weeks < 4) points += 2     // 2 weeks to 1 month
+      else points += 3                    // 1 month or more
+    } else {
+      // No expenses entered, fund exists, give full fund-size points
+      points += 3
+    }
+  }
+
   let note: string
   if (p.emergency_fund <= 0) {
-    points = 0
-    note = 'No emergency cushion yet, one surprise expense lands on a card or a loan.'
-  } else if (months >= 3) {
-    points = 20
-    note = `${months.toFixed(1)} months of essentials covered, excellent for a student.`
-  } else if (months >= 1) {
-    points = 12
-    note = `${months.toFixed(1)} months of essentials covered, solid buffer.`
+    note = 'No emergency fund yet. Even $200 gets you the base 2 points and covers a surprise expense.'
   } else {
-    points = 5
-    note = `${fmtMoney(p.emergency_fund)} saved, less than a month of essentials (${fmtMoney(essentials)}).`
+    const totalExp = totalExpenses(p.monthly_expenses) + totalCustomExpenses(p)
+    const weeksStr = totalExp > 0 ? `${((p.emergency_fund / totalExp) * 4).toFixed(1)} weeks` : 'some'
+    note = `${fmtMoney(p.emergency_fund)} set aside, covering about ${weeksStr} of expenses. This category is capped at 5 points intentionally.`
   }
-  return { key: 'emergency_fund', label: 'Emergency Fund', points, max: 20, note }
+
+  return { key: 'emergency_savings', label: 'Emergency Savings', points, max: 5, note }
 }
 
-function debtLoadScore(p: Profile): ScoreCategory {
-  const debt = totalDebt(p)
-  const annualIncome = p.monthly_income * 12
-  let points: number
+// 4. DEBT MANAGEMENT — 15 pts
+function debtManagementScore(p: Profile): ScoreCategory {
+  let points = 0
+
+  // Credit card utilization: up to 6 pts
+  const util = p.credit_utilization ?? ''
+  if (util === 'no_card' || util === '') {
+    // No card = 6 (zero utilization risk)
+    points += 6
+  } else if (util === 'under_10') points += 6
+  else if (util === '10_30') points += 4
+  else if (util === '30_50') points += 2
+  // over_50 = 0
+
+  // High-interest debt (APR > 20): none = 5, some = 2
+  const highInterestDebt = p.debt_breakdown.filter((d) => d.rate > 20)
+  if (highInterestDebt.length === 0) points += 5
+  else points += 2
+
+  // Student loan awareness: up to 4 pts
+  const studentLoans = p.debt_breakdown.filter((d) => d.type.toLowerCase().includes('student'))
+  if (studentLoans.length === 0) {
+    // No student loans = full 4 pts
+    points += 4
+  } else {
+    const knowsBalance = studentLoans.some((d) => d.balance > 0)
+    const knowsRate = studentLoans.some((d) => d.rate > 0)
+    if (knowsBalance) points += 2
+    if (knowsRate) points += 2
+  }
+
+  const highInterestNames = highInterestDebt.map((d) => d.type).join(', ')
   let note: string
-  if (debt === 0) {
-    points = 20
-    note = 'Debt-free, every dollar you earn is yours.'
-  } else if (annualIncome > 0 && debt < annualIncome) {
-    points = 14
-    note = `${fmtMoney(debt)} in debt, under one year of income, manageable.`
-  } else if (annualIncome > 0 && debt < annualIncome * 2) {
-    points = 8
-    note = `${fmtMoney(debt)} in debt, between 1-2x your annual income.`
+  if (highInterestDebt.length > 0) {
+    note = `High-interest debt (${highInterestNames}) at over 20% APR is costing you. Paying it down is the highest-return move.`
+  } else if (util === 'over_50') {
+    note = `Credit utilization over 50% is hurting your credit score. Paying down the balance improves it quickly.`
+  } else if (util === '30_50') {
+    note = `Credit utilization is in the 30 to 50% range. Keeping it under 30% adds points and improves your score.`
   } else {
-    points = 3
-    note = `${fmtMoney(debt)} in debt, heavy relative to current income.`
+    note = `Debt profile looks manageable. No high-interest debt and utilization is under control.`
   }
-  return { key: 'debt_load', label: 'Debt Load', points, max: 20, note }
+
+  return { key: 'debt_management', label: 'Debt Management', points, max: 15, note }
 }
 
-function savingsHabitScore(p: Profile): ScoreCategory {
-  const income = p.monthly_income
-  const surplus = monthlySurplus(p)
-  const rate = income > 0 ? surplus / income : 0
-  let points: number
+// 5. GOAL TRACKING — 15 pts
+function goalTrackingScore(p: Profile): ScoreCategory {
+  let points = 0
+  const goals = p.goals
+
+  // Has at least one goal: 4 pts
+  if (goals.length >= 1) points += 4
+
+  // Goal is specific with deadline (amount > 0 and by date set): 4 pts
+  const specificGoal = goals.find((g) => g.amount > 0 && g.by)
+  if (specificGoal) points += 4
+
+  // Made measurable progress (any goal with saved > 0): 4 pts
+  if (goals.some((g) => g.saved > 0)) points += 4
+
+  // More than one active goal: 3 pts
+  if (goals.length > 1) points += 3
+
   let note: string
-  if (rate > 0.1) {
-    points = 15
-    note = `About ${Math.round(rate * 100)}% of income is left over each month to save.`
-  } else if (rate >= 0.05) {
-    points = 10
-    note = `Roughly ${Math.round(rate * 100)}% of income free to save, decent start.`
-  } else if (rate > 0) {
-    points = 5
-    note = `Under 5% of income left to save each month.`
+  if (goals.length === 0) {
+    note = 'No goals set yet. Even one goal with an amount and a date is worth 8 points here.'
+  } else if (goals.length === 1) {
+    const g = goals[0]
+    const isCreditGoal = (g.type ?? 'savings') === 'credit'
+    const progressNote = g.saved > 0
+      ? isCreditGoal
+        ? `, currently at ${g.saved} points`
+        : `, with ${fmtMoney(g.saved)} saved so far`
+      : ''
+    note = `"${g.name}" is your current goal${progressNote}. Adding a second goal earns 3 more points.`
   } else {
-    points = 0
-    note = 'Nothing left over to save right now.'
+    const progress = goals.filter((g) => g.saved > 0).length
+    note = `${goals.length} goals active${progress > 0 ? `, ${progress} with money already saved toward them` : ''}. Good momentum.`
   }
-  return { key: 'savings_habit', label: 'Savings Habit', points, max: 15, note }
+
+  return { key: 'goal_tracking', label: 'Goal Tracking', points, max: 15, note }
 }
 
-function goalsScore(p: Profile): ScoreCategory {
-  const count = p.goals.length
-  let points: number
+// 6. FINANCIAL AWARENESS — 10 pts
+function financialAwarenessScore(p: Profile): ScoreCategory {
+  let points = 0
+
+  // Knows credit score within 20 points: 3 pts
+  if (p.knows_credit_score) points += 3
+
+  // Knows student loan servicer and repayment start date: 3 pts
+  if (p.knows_loan_terms) points += 3
+
+  // Knows APR on every card: 2 pts
+  if (p.knows_card_apr) points += 2
+
+  // Engaged with finance resource in last 3 months (quiz performance): up to 2 pts
+  const quizTaken = Object.keys(p.quiz_answers ?? {}).length > 0
+  const { correct } = knowledgeLevel(p)
+  if (quizTaken) points += correct >= 4 ? 2 : 1
+
   let note: string
-  if (count >= 2) {
-    points = 10
-    note = `${count} goals defined, money with a job to do.`
-  } else if (count === 1) {
-    points = 6
-    note = `1 goal set ("${p.goals[0].name}"), consider a second.`
+  if (points >= 8) {
+    note = `Strong financial awareness. You know your numbers${quizTaken ? `. Knowledge check: ${correct}/5 correct.` : ''}`
+  } else if (points >= 5) {
+    note = `Good baseline awareness${!p.knows_credit_score ? '. Checking your credit score (free via Credit Karma) adds 3 points' : ''}${quizTaken ? `. Knowledge check: ${correct}/5 correct.` : ''}`
   } else {
-    points = 0
-    note = 'No goals set yet, even one makes saving concrete.'
+    note = `Knowing your credit score, loan terms, and card APRs each adds points here. Check your credit for free at Credit Karma.${quizTaken ? ` Knowledge check: ${correct}/5 correct.` : ''}`
   }
-  return { key: 'goals', label: 'Has Goals Set', points, max: 10, note }
+
+  return { key: 'financial_awareness', label: 'Financial Awareness', points, max: 10, note }
 }
 
-function creditScore(p: Profile): ScoreCategory {
-  const hasCreditCardDebt = p.debt_breakdown.some(
-    (d) => d.type.toLowerCase() === 'credit card',
-  )
-  const hasCard = p.has_credit_card || hasCreditCardDebt
-  const points = hasCard ? 10 : 5
-  const note = hasCard
-    ? 'You have a credit card. Used responsibly, it builds your score.'
-    : 'No credit card yet, building credit early pays off after graduation.'
-  return { key: 'credit', label: 'Credit Awareness', points, max: 10, note }
-}
+// 7. CREDIT BUILDING — 10 pts
+function creditBuildingScore(p: Profile): ScoreCategory {
+  let points = 0
 
-function knowledgeScore(p: Profile): ScoreCategory {
-  const answers = p.quiz_answers ?? {}
-  const correct = knowledgeQuiz.filter((q) => {
-    const answered = answers[q.id]
-    return answered !== undefined && Number(answered) === q.correct
-  }).length
-  const points = correct
-  const total = knowledgeQuiz.length
-  const note = Object.keys(answers).length === 0
-    ? 'Knowledge quiz not taken yet.'
-    : `${correct} of ${total} correct. ${correct === total ? 'Perfect score.' : correct >= 3 ? 'Solid financial literacy.' : 'Worth reviewing the sections below.'}`
-  return { key: 'knowledge', label: 'Financial Knowledge', points, max: total, note }
+  // Has at least one open credit account in good standing: 3 pts
+  if (p.has_credit_card && p.payment_history !== 'three_plus') points += 3
+
+  // Oldest account is 6 months or more: 2 pts
+  if (p.oldest_account_6mo) points += 2
+
+  // Credit utilization consistently below 30%: 3 pts
+  // (utilization under_10 or 10_30; no card = 0 here)
+  const util = p.credit_utilization ?? ''
+  if (util === 'under_10' || util === '10_30') points += 3
+
+  // No hard inquiries in the last 6 months: 2 pts
+  if (p.no_new_credit_6mo !== false) points += 2
+
+  let note: string
+  if (!p.has_credit_card) {
+    note = `No credit card on file. A student secured card used for one small bill, paid in full monthly, builds credit steadily.`
+  } else if (util === 'over_50' || util === '30_50') {
+    note = `Card utilization is high. Paying down the balance to under 30% of your limit adds 3 points and lifts your credit score.`
+  } else {
+    note = `${p.oldest_account_6mo ? 'Account history is building' : 'Keep your oldest account open'}. Consistent low utilization is the key driver here.`
+  }
+
+  return { key: 'credit_building', label: 'Credit Building', points, max: 10, note }
 }
 
 const priorityActions: Record<string, (p: Profile) => string> = {
-  expense_ratio: (p) => {
-    const over = totalExpenses(p.monthly_expenses) - p.monthly_income * 0.8
-    return `Your biggest lever is spending. Trimming about ${fmtMoney(Math.max(over, 25))}/month gets you under the 80% expense-to-income line.`
+  payment_behavior: (p) => {
+    if (!p.has_autopay) {
+      return 'Set up autopay today, even just for the minimum on one bill. It takes 5 minutes and eliminates the most common credit mistake.'
+    }
+    const ph = p.payment_history ?? ''
+    if (ph === 'three_plus' || ph === 'two_misses') {
+      return 'Focus on catching up any overdue payments first, then set autopay so this cannot happen again.'
+    }
+    return 'Expand autopay to cover all recurring bills and keep that payment record clean.'
   },
-  emergency_fund: (p) => {
-    const target = p.emergency_fund <= 0 && p.savings <= 0 ? 500 : essentialExpenses(p.monthly_expenses)
+  spending_control: (p) => {
+    const income = p.monthly_income
+    const totalSpend = totalExpenses(p.monthly_expenses) + totalCustomExpenses(p)
+    if (income > 0 && totalSpend > income) {
+      return `You're spending ${fmtMoney(totalSpend - income)} more than you earn. Find one subscription or going-out line to cut this week.`
+    }
+    const disc = p.monthly_expenses.subscriptions + p.monthly_expenses.going_out + p.monthly_expenses.other + totalCustomExpenses(p)
+    if (income > 0 && disc / income > 0.40) {
+      return `Discretionary spending is over 40% of income. Trimming ${fmtMoney(Math.round((disc - income * 0.30) / 10) * 10)}/month in subscriptions or going-out gets you to the 30% target.`
+    }
+    return 'Track every expense for one month using the Budget page to find the biggest leak.'
+  },
+  emergency_savings: (p) => {
+    const totalExp = totalExpenses(p.monthly_expenses) + totalCustomExpenses(p)
+    const target = totalExp > 0 ? totalExp : 500
     const gap = Math.max(target - p.emergency_fund, 0)
     const weekly = Math.max(Math.ceil(gap / 12 / 5) * 5, 10)
-    return `Start your emergency cushion: ${fmtMoney(weekly)}/week auto-saved gets you to ${fmtMoney(target)} in about 12 weeks.`
+    return `Auto-save ${fmtMoney(weekly)}/week to a separate savings account. Even a small fund means a surprise expense does not become credit card debt.`
   },
-  debt_load: (p) => {
-    const highest = [...p.debt_breakdown].sort((a, b) => b.rate - a.rate)[0]
-    return highest
-      ? `Attack your ${highest.type} first. At ${highest.rate}% APR it is your most expensive debt. Check the Debt Planner for a payoff plan.`
-      : 'Open the Debt Planner to map out a payoff strategy.'
+  debt_management: (p) => {
+    const highInterest = [...p.debt_breakdown].filter((d) => d.rate > 20).sort((a, b) => b.rate - a.rate)
+    if (highInterest.length > 0) {
+      return `Your ${highInterest[0].type} at ${highInterest[0].rate}% APR is your most expensive money. Pay more than the minimum every month and check the Debt Planner for a payoff timeline.`
+    }
+    const util = p.credit_utilization ?? ''
+    if (util === 'over_50' || util === '30_50') {
+      return 'Paying down your credit card balance is the fastest way to improve your score. Target getting under 30% of your limit.'
+    }
+    return 'Your debt load is manageable. Use the Debt Planner to map out a payoff order and see the exact payoff date.'
   },
-  savings_habit: () =>
-    'Find one recurring expense to cut and auto-transfer that amount to savings on payday, even $20/month builds the habit.',
-  goals: () =>
-    'Set one concrete goal with a number and a date (e.g. "$800 spring break trip by March"). It turns saving from a chore into progress.',
-  credit: () =>
-    'Look into a student credit card or secured card, put one small recurring bill on it and pay it in full monthly.',
-  knowledge: () =>
-    'Review the Debt Planner and Discounts sections to brush up on the areas the quiz flagged.',
+  goal_tracking: () =>
+    'Set one goal with a specific dollar amount and a target date. "$800 for spring break by March" is concrete enough to save toward.',
+  financial_awareness: (p) => {
+    if (!p.knows_credit_score) {
+      return 'Check your credit score for free on Credit Karma or through your bank app. Knowing your number is the first step to improving it.'
+    }
+    if (!p.knows_loan_terms) {
+      return 'Log into studentaid.gov to find your loan servicer and repayment start date. It takes 5 minutes and earns you 3 points here.'
+    }
+    return 'Take the in-app knowledge check to lock in the financial awareness points and find any gaps.'
+  },
+  credit_building: (p) => {
+    if (!p.has_credit_card) {
+      return 'Look into a student secured card. Put one small recurring bill on it, pay in full monthly, and your credit score will grow steadily over 6 to 12 months.'
+    }
+    const util = p.credit_utilization ?? ''
+    if (util === 'over_50' || util === '30_50') {
+      return 'Bring your credit card balance below 30% of your limit. That single move can lift your score by 20 to 40 points.'
+    }
+    return 'Keep your oldest card open and active, even for small purchases. Account age is one of the key credit score inputs.'
+  },
 }
 
 export function calculateScore(p: Profile): ScoreResult {
   const categories = [
-    expenseRatioScore(p),
-    emergencyFundScore(p),
-    debtLoadScore(p),
-    savingsHabitScore(p),
-    goalsScore(p),
-    creditScore(p),
-    knowledgeScore(p),
+    paymentBehaviorScore(p),
+    spendingControlScore(p),
+    emergencySavingsScore(p),
+    debtManagementScore(p),
+    goalTrackingScore(p),
+    financialAwarenessScore(p),
+    creditBuildingScore(p),
   ]
   const total = Math.min(categories.reduce((sum, c) => sum + c.points, 0), 100)
   const lowest = [...categories].sort((a, b) => a.points / a.max - b.points / b.max)[0]
@@ -233,9 +404,17 @@ export function calculateScore(p: Profile): ScoreResult {
 }
 
 export function scoreLabel(score: number): string {
-  if (score >= 80) return 'Excellent'
-  if (score >= 65) return 'Strong'
-  if (score >= 50) return 'Getting There'
+  if (score >= 90) return 'Excellent'
+  if (score >= 75) return 'Good'
+  if (score >= 55) return 'Fair'
   if (score >= 35) return 'Needs Work'
-  return 'Just Starting'
+  return 'Poor'
+}
+
+export function scoreDescription(score: number): string {
+  if (score >= 90) return 'Ahead of 95 percent of students your age'
+  if (score >= 75) return 'Solid habits with a few gaps to close'
+  if (score >= 55) return 'Right direction but real risks present'
+  if (score >= 35) return 'One emergency away from a debt problem'
+  return 'Core habits missing. Start with payments and savings.'
 }

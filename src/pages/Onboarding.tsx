@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { DebtItem, Goal, Profile, SchoolYear } from '../types'
+import type { DebtItem, Goal, Profile, SchoolYear, CustomCard } from '../types'
 import { emptyProfile } from '../types'
 import { calculateScore } from '../lib/score'
 import { knowledgeQuiz } from '../lib/score'
 import { useProfile } from '../hooks/useProfile'
 import ScoreCard from '../components/ScoreCard'
+import { creditCardStages, cardByName, REWARD_TYPE_LABELS } from '../lib/creditCards'
+import type { CardRewardType } from '../lib/creditCards'
 
 const INCOME_SOURCES = ['Part-time job', 'Financial aid disbursement', 'Parental support', 'Scholarship', 'Side hustle']
 const SCHOOL_YEARS: SchoolYear[] = ['freshman', 'sophomore', 'junior', 'senior', 'grad']
 const DEBT_TYPES = ['Student loan', 'Credit card', 'Car payment', 'Personal loan', 'Other']
 
-// Steps: 0=Welcome 1=Income 2=Expenses 3=Debt 4=Savings 5=Goals 6=Quiz 7=Score
-const TOTAL_DATA_STEPS = 6 // steps 1-6 have progress bar
+// Steps: 0=Welcome 1=Income 2=Expenses 3=Debt 4=Savings 5=Payments 6=Credit 7=Goals 8=Quiz 9=Score
+const TOTAL_DATA_STEPS = 8 // steps 1-8 have progress bar
 
 // Compute a date ~6 months from today as YYYY-MM
 function sixMonthsOut(): string {
@@ -59,6 +61,8 @@ const stepTitles = [
   "What's going out?",
   'Any debt right now?',
   "What's saved up?",
+  'Payments',
+  'Credit and awareness',
   "What are you working toward?",
   'Quick knowledge check',
   'Your Financial Health Score',
@@ -85,6 +89,13 @@ export default function Onboarding() {
   const [quizRevealed, setQuizRevealed] = useState(false)
   // Whether the user has opted to retake the quiz (overrides skip logic)
   const [retakingQuiz, setRetakingQuiz] = useState(false)
+  // Catalog picker state (step 6)
+  const [catalogPickerValue, setCatalogPickerValue] = useState('')
+  // Custom card form state (step 6)
+  const [showCustomCardForm, setShowCustomCardForm] = useState(false)
+  const [customCardName, setCustomCardName] = useState('')
+  const [customCardRewardType, setCustomCardRewardType] = useState<CardRewardType>('cashback')
+  const [customCardTier, setCustomCardTier] = useState<number>(1)
 
   const set = (patch: Partial<Profile>) => setProfile((p) => ({ ...p, ...patch }))
   const setExpense = (key: keyof Profile['monthly_expenses'], val: number) =>
@@ -129,17 +140,17 @@ export default function Onboarding() {
       setQuizSelected(null)
       setQuizRevealed(false)
     } else {
-      setStep(7)
+      setStep(9)
     }
   }
 
-  // Called from step 5 "Next" button
+  // Called from step 7 "Next" button (Goals)
   const proceedFromGoals = () => {
     if (hasExistingQuizAnswers && !retakingQuiz) {
       // Skip quiz, go straight to score reveal
-      setStep(7)
+      setStep(9)
     } else {
-      setStep(6)
+      setStep(8)
     }
   }
 
@@ -148,13 +159,58 @@ export default function Onboarding() {
     setNewGoal({ name, amount, by: sixMonthsOut() })
   }
 
+  // Add a catalog card by name from the picker (step 6)
+  const addCatalogCard = (name: string) => {
+    if (!name) return
+    const cur = profile.owned_cards ?? []
+    const alreadyPresent = cur.some((c) => c.toLowerCase() === name.toLowerCase())
+    if (!alreadyPresent) {
+      set({ owned_cards: [...cur, name], has_credit_card: true })
+    }
+    setCatalogPickerValue('')
+  }
+
+  // Add a structured custom card (step 6)
+  const addCustomCard = () => {
+    const trimmed = customCardName.trim()
+    if (!trimmed) return
+    const newCard: CustomCard = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      rewardType: customCardRewardType,
+      tier: customCardTier,
+    }
+    const curCustom = profile.custom_cards ?? []
+    set({ custom_cards: [...curCustom, newCard], has_credit_card: true })
+    setCustomCardName('')
+    setCustomCardRewardType('cashback')
+    setCustomCardTier(1)
+    setShowCustomCardForm(false)
+  }
+
+  // Remove a catalog card from owned_cards (step 6)
+  const removeCatalogCard = (name: string) => {
+    const next = (profile.owned_cards ?? []).filter((c) => c !== name)
+    set({ owned_cards: next })
+  }
+
+  // Remove a custom card by id (step 6)
+  const removeCustomCard = (id: string) => {
+    const next = (profile.custom_cards ?? []).filter((c) => c.id !== id)
+    set({ custom_cards: next })
+  }
+
   // Credit card debt balance (for "Pay off my card" template)
   const cardDebtBalance = profile.debt_breakdown
     .filter((d) => d.type === 'Credit card')
     .reduce((s, d) => s + d.balance, 0)
 
-  const score = step === 7 ? calculateScore(profile) : null
+  const score = step === 9 ? calculateScore(profile) : null
   const currentQuiz = knowledgeQuiz[quizIndex]
+
+  const ownedCatalogCards = profile.owned_cards ?? []
+  const ownedCustomCards = profile.custom_cards ?? []
+  const hasNoCards = ownedCatalogCards.length === 0 && ownedCustomCards.length === 0
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#03201a] to-[#06302a] flex items-center justify-center px-4 py-10">
@@ -166,7 +222,7 @@ export default function Onboarding() {
           <span className="text-xl font-extrabold tracking-tight">delphi<span className="text-emerald-400">.</span></span>
         </div>
 
-        {step > 0 && step < 7 && (
+        {step > 0 && step < 9 && (
           <div className="mb-4">
             <div className="mb-1.5 flex items-baseline justify-between text-[11px] text-emerald-100/60">
               <span className="font-medium uppercase tracking-wide">Step {step} of {TOTAL_DATA_STEPS}</span>
@@ -339,8 +395,319 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 5: Goals ── */}
+          {/* ── Step 5: Payments ── */}
           {step === 5 && (
+            <div className="mt-4 space-y-5">
+              <p className="text-sm text-ink-mid">A few quick questions about your payment habits. No judgment, these just tune your score.</p>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint mb-2">Payments</p>
+                <p className="text-sm text-ink-mid mb-2">In the last 6 months, how were your bill payments?</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'perfect', label: 'Perfect' },
+                    { value: 'one_miss', label: 'Missed one' },
+                    { value: 'two_misses', label: 'Missed two' },
+                    { value: 'three_plus', label: 'Missed three or more' },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => set({ payment_history: value })}
+                      className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.payment_history === value ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-sm text-ink-mid mt-3 mb-2">Which do you pay on time every month? (select all that apply)</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'credit_card', label: 'Credit card' },
+                    { value: 'rent', label: 'Rent' },
+                    { value: 'phone_utilities', label: 'Phone and utilities' },
+                  ] as const).map(({ value, label }) => {
+                    const on = (profile.bills_on_time ?? []).includes(value)
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          const cur = profile.bills_on_time ?? []
+                          set({ bills_on_time: on ? cur.filter((x) => x !== value) : [...cur, value] })
+                        }}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${on ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Autopay set up for at least one bill?</span>
+                  <div className="flex gap-2">
+                    {([{ val: true, label: 'Yes' }, { val: false, label: 'No' }] as const).map(({ val, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ has_autopay: val })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.has_autopay === val ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 6: Credit and awareness ── */}
+          {step === 6 && (
+            <div className="mt-4 space-y-5">
+              <p className="text-sm text-ink-mid">A few quick questions about your credit and financial awareness.</p>
+
+              {/* CREDIT */}
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint mb-2">Credit</p>
+                <p className="text-sm text-ink-mid mb-2">Roughly how much of your credit limit do you use?</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'no_card', label: 'No card' },
+                    { value: 'under_10', label: 'Under 10%' },
+                    { value: '10_30', label: '10 to 30%' },
+                    { value: '30_50', label: '30 to 50%' },
+                    { value: 'over_50', label: 'Over 50%' },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => set({ credit_utilization: value })}
+                      className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.credit_utilization === value ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Cards you already have */}
+                <div className="mt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint mb-1">Cards you already have</p>
+                  <p className="text-xs text-ink-faint mb-2">Add any cards you hold. We will tailor your roadmap to your next move.</p>
+
+                  {/* Current owned chips */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {ownedCatalogCards.map((cardName) => {
+                      const spec = cardByName(cardName)
+                      return (
+                        <span
+                          key={cardName}
+                          className="inline-flex items-center gap-1 text-xs rounded-full px-3 py-1.5 border bg-brand-soft text-brand-ink border-brand-line"
+                        >
+                          {cardName}{spec ? ` · ${spec.issuer}` : ''}
+                          <button
+                            type="button"
+                            aria-label={`Remove ${cardName}`}
+                            onClick={() => removeCatalogCard(cardName)}
+                            className="ml-0.5 hover:opacity-70 transition-opacity"
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      )
+                    })}
+                    {ownedCustomCards.map((card) => (
+                      <span
+                        key={card.id}
+                        className="inline-flex items-center gap-1 text-xs rounded-full px-3 py-1.5 border bg-brand-soft text-brand-ink border-brand-line"
+                      >
+                        {card.name} · {REWARD_TYPE_LABELS[card.rewardType]}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${card.name}`}
+                          onClick={() => removeCustomCard(card.id)}
+                          className="ml-0.5 hover:opacity-70 transition-opacity"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                    {/* "I do not have any yet" chip */}
+                    <button
+                      type="button"
+                      onClick={() => set({ owned_cards: [], custom_cards: [] })}
+                      className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${hasNoCards ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                    >
+                      I do not have any yet
+                    </button>
+                  </div>
+
+                  {/* Catalog picker */}
+                  <select
+                    value={catalogPickerValue}
+                    onChange={(e) => { addCatalogCard(e.target.value) }}
+                    className="w-full rounded-xl border border-line-strong px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
+                  >
+                    <option value="">Add a card from our list...</option>
+                    {creditCardStages.map((stage) => (
+                      <optgroup key={stage.id} label={`Stage ${stage.stageNumber}`}>
+                        {stage.cards.map((card) => (
+                          <option key={card.name} value={card.name}>
+                            {card.name} — {card.issuer}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+
+                  {/* "My card isn't listed" toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomCardForm((v) => !v)}
+                    className="mt-2 text-xs text-brand hover:text-brand-strong underline transition-colors"
+                  >
+                    {showCustomCardForm ? 'Cancel' : 'My card is not listed'}
+                  </button>
+
+                  {/* Structured custom card form */}
+                  {showCustomCardForm && (
+                    <div className="mt-3 space-y-2 bg-surface-2 rounded-xl border border-line p-3">
+                      <input
+                        type="text"
+                        value={customCardName}
+                        placeholder="Card name"
+                        onChange={(e) => setCustomCardName(e.target.value)}
+                        className="w-full rounded-lg border border-line-strong px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
+                      />
+                      <select
+                        value={customCardRewardType}
+                        onChange={(e) => setCustomCardRewardType(e.target.value as CardRewardType)}
+                        className="w-full rounded-lg border border-line-strong px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
+                      >
+                        {(Object.entries(REWARD_TYPE_LABELS) as [CardRewardType, string][]).map(([val, label]) => (
+                          <option key={val} value={val}>{label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={customCardTier}
+                        onChange={(e) => setCustomCardTier(Number(e.target.value))}
+                        className="w-full rounded-lg border border-line-strong px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
+                      >
+                        <option value={1}>Starter / first card</option>
+                        <option value={2}>Building credit / rewards</option>
+                        <option value={3}>Established rewards</option>
+                        <option value={4}>Premium / travel</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={addCustomCard}
+                        disabled={!customCardName.trim()}
+                        className="w-full rounded-lg bg-brand text-on-brand px-3 py-2 text-sm font-medium hover:bg-brand-strong disabled:opacity-40 transition-colors"
+                      >
+                        Add card
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Oldest credit account at least 6 months old?</span>
+                  <div className="flex gap-2">
+                    {([{ val: true, label: 'Yes' }, { val: false, label: 'No' }] as const).map(({ val, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ oldest_account_6mo: val })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.oldest_account_6mo === val ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Applied for new credit in the last 6 months?</span>
+                  <div className="flex gap-2">
+                    {([{ applied: true, label: 'Yes' }, { applied: false, label: 'No' }] as const).map(({ applied, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ no_new_credit_6mo: !applied })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.no_new_credit_6mo === !applied ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* AWARENESS */}
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint mb-2">Awareness</p>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Know your credit score within about 20 points?</span>
+                  <div className="flex gap-2">
+                    {([{ val: true, label: 'Yes' }, { val: false, label: 'No' }] as const).map(({ val, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ knows_credit_score: val })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.knows_credit_score === val ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Know your loan servicer and when repayment starts?</span>
+                  <div className="flex gap-2">
+                    {([{ val: true, label: 'Yes' }, { val: false, label: 'No' }, { val: true, label: 'No loans' }] as {val: boolean, label: string}[]).map(({ val, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ knows_loan_terms: val })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${
+                          label === 'No loans' && profile.knows_loan_terms === true && profile.debt_breakdown.filter((d) => d.type.toLowerCase().includes('student')).length === 0
+                            ? 'bg-brand text-on-brand border-brand'
+                            : label !== 'No loans' && profile.knows_loan_terms === val
+                            ? 'bg-brand text-on-brand border-brand'
+                            : 'border-line-strong text-ink-mid hover:border-brand'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-ink-mid">Know the APR on every card you carry?</span>
+                  <div className="flex gap-2">
+                    {([{ val: true, label: 'Yes' }, { val: false, label: 'No' }, { val: true, label: 'No cards' }] as {val: boolean, label: string}[]).map(({ val, label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => set({ knows_card_apr: val })}
+                        className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${profile.knows_card_apr === val ? 'bg-brand text-on-brand border-brand' : 'border-line-strong text-ink-mid hover:border-brand'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 7: Goals ── */}
+          {step === 7 && (
             <div className="mt-4 space-y-4">
               <p className="text-sm text-ink-mid">
                 What are you actually trying to do with money in the next 6-12 months? Give it a name, a number, and a date.
@@ -373,7 +740,7 @@ export default function Onboarding() {
                 <ul className="space-y-2">
                   {profile.goals.map((g) => (
                     <li key={g.id} className="flex items-center justify-between bg-surface-2 rounded-lg px-3 py-2 text-sm">
-                      <span>{g.name}, ${g.amount.toLocaleString()} by {g.by}</span>
+                      <span>{g.name}, {(g.type ?? 'savings') === 'credit' ? `${g.amount} score` : `$${g.amount.toLocaleString()}`} by {g.by}</span>
                       <button type="button" onClick={() => set({ goals: profile.goals.filter((x) => x.id !== g.id) })} className="text-bad hover:text-bad-ink text-xs font-medium">Remove</button>
                     </li>
                   ))}
@@ -397,8 +764,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 6: Knowledge Quiz ── */}
-          {step === 6 && (
+          {/* ── Step 8: Knowledge Quiz ── */}
+          {step === 8 && (
             <div className="mt-4 space-y-4">
               <p className="text-xs text-ink-faint">Not a test. This just helps your coach pitch advice at the right level.</p>
               <div className="flex items-center justify-between">
@@ -446,8 +813,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 7: Score ── */}
-          {step === 7 && score && (
+          {/* ── Step 9: Score ── */}
+          {step === 9 && score && (
             <div className="mt-4 space-y-4">
               <ScoreCard result={score} />
               <p className="text-xs text-ink-faint text-center">
@@ -459,8 +826,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Back / Next navigation (steps 1-5) ── */}
-          {step > 0 && step < 6 && (
+          {/* ── Back / Next navigation (steps 1-7) ── */}
+          {step > 0 && step < 8 && (
             <div className="mt-6 flex justify-between items-center">
               <button type="button" onClick={() => setStep(step - 1)} className="text-sm text-ink-faint hover:text-ink px-3 py-2">
                 ← Back
@@ -468,20 +835,20 @@ export default function Onboarding() {
               <div className="flex flex-col items-end gap-1">
                 <button
                   type="button"
-                  onClick={step === 5 ? proceedFromGoals : () => setStep(step + 1)}
+                  onClick={step === 7 ? proceedFromGoals : () => setStep(step + 1)}
                   disabled={step === 1 && profile.monthly_income <= 0}
                   className="rounded-xl bg-brand text-on-brand px-5 py-2.5 text-sm font-semibold hover:bg-brand-strong disabled:opacity-40 transition-colors"
                 >
-                  {step === 5
+                  {step === 7
                     ? hasExistingQuizAnswers && !retakingQuiz
                       ? 'See my score →'
                       : 'Knowledge check →'
                     : 'Next →'}
                 </button>
-                {step === 5 && hasExistingQuizAnswers && !retakingQuiz && (
+                {step === 7 && hasExistingQuizAnswers && !retakingQuiz && (
                   <button
                     type="button"
-                    onClick={() => { setRetakingQuiz(true); setStep(6) }}
+                    onClick={() => { setRetakingQuiz(true); setStep(8) }}
                     className="text-xs text-ink-faint hover:text-ink underline"
                   >
                     Retake the knowledge check
@@ -490,9 +857,9 @@ export default function Onboarding() {
               </div>
             </div>
           )}
-          {step === 6 && quizRevealed === false && (
+          {step === 8 && quizRevealed === false && (
             <div className="mt-4 flex">
-              <button type="button" onClick={() => { if (quizIndex > 0) { setQuizIndex(quizIndex - 1); setQuizSelected(null); setQuizRevealed(false); } else { setStep(5); } }} className="text-sm text-ink-faint hover:text-ink px-3 py-2">
+              <button type="button" onClick={() => { if (quizIndex > 0) { setQuizIndex(quizIndex - 1); setQuizSelected(null); setQuizRevealed(false); } else { setStep(7); } }} className="text-sm text-ink-faint hover:text-ink px-3 py-2">
                 ← Back
               </button>
             </div>
