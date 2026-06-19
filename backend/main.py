@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any
 
+import requests
 import yfinance as yf
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -16,6 +17,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 load_dotenv()
+
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
 # ---------------------------------------------------------------------------
 # CORS
@@ -172,6 +176,7 @@ def root() -> dict:
             "/api/history?symbol=AAPL&from_date=YYYY-MM-DD",
             "/api/search?q=apple",
             "/api/recommendations (POST {holdings:[...]})",
+            "/api/coach (POST {model, messages:[...]})",
         ],
     }
 
@@ -481,3 +486,60 @@ def get_recommendations(body: RecommendationsRequest) -> list[Recommendation]:
             recs.append(_enrich(sym, name, at, rationale))
 
     return recs[:5]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/coach -- proxies chat completions to NVIDIA NIM
+#
+# The frontend builds the system prompt (delphi's role + the student's
+# serialized profile) and message history; this endpoint only attaches the
+# secret API key and forwards the request, so NVIDIA_API_KEY never reaches
+# the browser. NVIDIA's API does not support direct browser calls (no CORS
+# on the response), which is the whole reason this proxy exists.
+# ---------------------------------------------------------------------------
+
+
+class ChatTurn(BaseModel):
+    role: str
+    content: str
+
+
+class CoachRequest(BaseModel):
+    model: str
+    messages: list[ChatTurn]
+    temperature: float = 0.5
+    top_p: float = 0.9
+    max_tokens: int = 700
+
+
+@app.post("/api/coach")
+def coach_chat(body: CoachRequest) -> dict:
+    if not NVIDIA_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="NVIDIA_API_KEY is not set on the backend. Add it to backend/.env and restart uvicorn.",
+        )
+    try:
+        resp = requests.post(
+            NVIDIA_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": body.model,
+                "messages": [m.model_dump() for m in body.messages],
+                "temperature": body.temperature,
+                "top_p": body.top_p,
+                "max_tokens": body.max_tokens,
+                "stream": False,
+            },
+            timeout=60,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"Could not reach NVIDIA NIM: {exc}") from exc
+
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=f"NVIDIA NIM error: {resp.text[:500]}")
+
+    return resp.json()

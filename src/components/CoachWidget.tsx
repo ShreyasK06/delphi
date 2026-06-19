@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useProfile } from '../hooks/useProfile'
 import { calculateScore } from '../lib/score'
-import { mockCoach } from '../lib/coach/mockCoach'
+import { nemotronCoach } from '../lib/coach/nemotronCoach'
 import type { ChatMessage } from '../types'
 import ChatPanel from './ChatPanel'
 import { ChatIcon, CloseIcon } from './icons'
@@ -70,7 +70,7 @@ export default function CoachWidget() {
           </div>
           <ChatPanel
             profile={profile}
-            coach={mockCoach}
+            coach={nemotronCoach}
             starters={starters}
             initialMessages={[greeting]}
             className="h-[24rem] rounded-t-none border-t-0 shadow-2xl"

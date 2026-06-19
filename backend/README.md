@@ -33,6 +33,7 @@ Interactive docs: `http://localhost:8000/docs`
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated list of allowed CORS origins |
 | `VERCEL_ORIGIN` | _(empty)_ | Your Vercel deployment URL, added to CORS automatically |
+| `NVIDIA_API_KEY` | _(empty)_ | NVIDIA NIM key for `/api/coach` (https://build.nvidia.com). Kept server-side because NVIDIA's API doesn't support direct browser calls. |
 
 ## Frontend connection
 
@@ -53,6 +54,7 @@ VITE_API_URL=http://localhost:8000
 | GET | `/api/history?symbol=AAPL&from_date=2023-01-01` | Price history |
 | GET | `/api/search?q=apple` | Symbol search |
 | POST | `/api/recommendations` | Diversification suggestions |
+| POST | `/api/coach` | Proxies chat completions to NVIDIA NIM (`{ model, messages: [...] }`); requires `NVIDIA_API_KEY` |
 
 ## Deploying to Render or Railway
 
@@ -68,6 +70,7 @@ Both platforms can run the backend from the `backend/` folder directly.
    ```
 4. Add environment variables:
    - `CORS_ORIGINS` = your Vercel domain, e.g. `https://delphi-app.vercel.app`
+   - `NVIDIA_API_KEY` = your NVIDIA NIM key, if using the coach chat
 5. In your Vercel project, add:
    - `VITE_API_URL` = the Render service URL, e.g. `https://delphi-api.onrender.com`
 
