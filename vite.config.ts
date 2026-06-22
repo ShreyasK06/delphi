@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
-})
+  // GitHub Pages serves this as a project site at /personal-finance-coach/,
+  // not the domain root. Dev server keeps using "/" so `npm run dev` is unaffected.
+  base: command === 'build' ? '/personal-finance-coach/' : '/',
+}))
