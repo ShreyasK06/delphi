@@ -56,6 +56,28 @@ VITE_API_URL=http://localhost:8000
 | POST | `/api/recommendations` | Diversification suggestions |
 | POST | `/api/coach` | Proxies chat completions to NVIDIA NIM (`{ model, messages: [...] }`); requires `NVIDIA_API_KEY` |
 
+## Deploying to Vercel
+
+`backend/api/index.py` re-exports the FastAPI app from `main.py` so Vercel's
+zero-config Python runtime can find it; `backend/vercel.json` routes every
+path to that function. Nothing else needs to change.
+
+1. In the Vercel dashboard, **Add New Project** and import this repo.
+2. Set **Root Directory** to `backend`. Leave Framework Preset as "Other" —
+   no build command is needed, Vercel installs `requirements.txt` automatically.
+3. Add environment variables (Project Settings → Environment Variables):
+   - `NVIDIA_API_KEY` = your NVIDIA NIM key
+   - `CORS_ORIGINS` = your GitHub Pages origin, e.g.
+     `https://<your-username>.github.io` (no trailing path — CORS only checks
+     scheme + host + port, so the `/personal-finance-coach/` subpath doesn't matter)
+4. Deploy. The API will be live at `https://<project-name>.vercel.app`.
+5. Set `VITE_API_URL` (in the frontend's GitHub Actions secrets, see the root
+   README) to that URL and redeploy the frontend.
+
+Size note: `yfinance` pulls in pandas/numpy, which can push close to Vercel's
+function size limit. If a deploy fails on size, the Render/Railway path below
+is the fallback — no code changes needed, just point `VITE_API_URL` there instead.
+
 ## Deploying to Render or Railway
 
 Both platforms can run the backend from the `backend/` folder directly.
