@@ -49,9 +49,7 @@ export default function CoachWidget() {
           <div className="rounded-t-2xl bg-[#04231c]/90 backdrop-blur-xl border border-white/10 border-b-0 px-4 py-3 flex items-center justify-between shadow-2xl">
             <div className="flex items-center gap-2.5">
               <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-sm font-black text-white">
-                  d
-                </div>
+                <img src="/logo-mark.png" alt="" className="w-8 h-8 rounded-full object-contain" />
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#04231c]" />
               </div>
               <div>
