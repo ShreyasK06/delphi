@@ -216,9 +216,7 @@ export default function Onboarding() {
     <div className="min-h-screen bg-gradient-to-b from-[#03201a] to-[#06302a] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-xl">
         <div className="flex items-center gap-2.5 justify-center text-white mb-6 animate-fade-up">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-black text-lg">
-            d
-          </div>
+          <img src="/logo-mark.png" alt="" className="w-9 h-9 object-contain" />
           <span className="text-xl font-extrabold tracking-tight">delphi<span className="text-emerald-400">.</span></span>
         </div>
 
