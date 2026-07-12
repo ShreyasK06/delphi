@@ -162,10 +162,7 @@ export default function Landing() {
       <div className="pointer-events-none absolute -bottom-40 left-1/3 w-[28rem] h-[28rem] rounded-full bg-emerald-300/10 blur-3xl animate-blob" style={{ animationDelay: '8s' }} />
 
       <header className="relative z-10 flex items-center justify-between px-6 md:px-12 py-6">
-        <div className="flex items-center gap-2.5">
-          <img src={`${import.meta.env.BASE_URL}logo-mark.png`} alt="" className="w-9 h-9 object-contain" />
-          <span className="font-display text-white font-bold text-xl tracking-tight">delphi<span className="text-emerald-400">.</span></span>
-        </div>
+        <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="delphi." className="h-14 md:h-16 object-contain" />
         <span className="hidden sm:block text-xs text-emerald-100/50">money, decoded for college</span>
       </header>
 
