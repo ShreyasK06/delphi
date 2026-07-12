@@ -163,7 +163,7 @@ export default function Landing() {
 
       <header className="relative z-10 flex items-center justify-between px-6 md:px-12 py-6">
         <div className="flex items-center gap-2.5">
-          <img src="/logo-mark.png" alt="" className="w-9 h-9 object-contain" />
+          <img src={`${import.meta.env.BASE_URL}logo-mark.png`} alt="" className="w-9 h-9 object-contain" />
           <span className="font-display text-white font-bold text-xl tracking-tight">delphi<span className="text-emerald-400">.</span></span>
         </div>
         <span className="hidden sm:block text-xs text-emerald-100/50">money, decoded for college</span>
@@ -212,7 +212,7 @@ export default function Landing() {
             </FloatingCard>
             <FloatingCard className="left-8 top-40 animate-float-slow" parallax={parallax} px={12} py={-14}>
               <div className="flex items-start gap-2">
-                <img src="/logo-mark.png" alt="" className="w-6 h-6 rounded-full object-contain shrink-0" />
+                <img src={`${import.meta.env.BASE_URL}logo-mark.png`} alt="" className="w-6 h-6 rounded-full object-contain shrink-0" />
                 <p className="text-xs text-emerald-50/90 max-w-[13rem] leading-snug">
                   Refund landed? Put $500 on the 22% card first. That's a guaranteed win.
                 </p>

@@ -64,7 +64,7 @@ function Wordmark({ size = 'lg' }: { size?: 'lg' | 'sm' }) {
   return (
     <div className="flex items-center gap-2.5">
       <img
-        src="/logo-mark.png"
+        src={`${import.meta.env.BASE_URL}logo-mark.png`}
         alt=""
         className={size === 'lg' ? 'w-9 h-9 object-contain' : 'w-7 h-7 object-contain'}
       />
@@ -157,7 +157,7 @@ export default function Layout() {
               aria-expanded={false}
               className="w-9 h-9 rounded-xl flex items-center justify-center hover:scale-105 transition-transform"
             >
-              <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo-mark.png`} alt="" className="w-full h-full object-contain" />
             </button>
           ) : (
             <>
@@ -170,7 +170,7 @@ export default function Layout() {
                   aria-expanded={true}
                   className="w-9 h-9 rounded-xl flex items-center justify-center hover:scale-105 transition-transform shrink-0"
                 >
-                  <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
+                  <img src={`${import.meta.env.BASE_URL}logo-mark.png`} alt="" className="w-full h-full object-contain" />
                 </button>
                 <span className="font-display font-bold tracking-tight text-white text-lg">
                   delphi<span className="text-emerald-400">.</span>
