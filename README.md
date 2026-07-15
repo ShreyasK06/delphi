@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ShreyasK06/personal-finance-coach/actions/workflows/deploy-pages.yml"><img src="https://github.com/ShreyasK06/personal-finance-coach/actions/workflows/deploy-pages.yml/badge.svg" alt="Deploy status" /></a>
+  <a href="https://github.com/ShreyasK06/delphi/actions/workflows/deploy-pages.yml"><img src="https://github.com/ShreyasK06/delphi/actions/workflows/deploy-pages.yml/badge.svg" alt="Deploy status" /></a>
   <img src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white" alt="Vite" />
@@ -23,7 +23,7 @@ logins, no jargon, just a two-minute setup that turns a student's own numbers in
 can actually follow. A built-in AI coach answers questions grounded in that plan, not generic
 "skip the latte" advice.
 
-**[Live demo →](https://ShreyasK06.github.io/personal-finance-coach/)**
+**[Live demo →](https://ShreyasK06.github.io/delphi/)**
 
 ## Features
 
@@ -69,8 +69,8 @@ fallbacks in [backend/README.md](backend/README.md)).
 
 ### 1. Clone and install
 ```bash
-git clone https://github.com/ShreyasK06/personal-finance-coach.git
-cd personal-finance-coach
+git clone https://github.com/ShreyasK06/delphi.git
+cd delphi
 npm install
 ```
 

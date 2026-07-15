@@ -69,7 +69,7 @@ path to that function. Nothing else needs to change.
    - `NVIDIA_API_KEY` = your NVIDIA NIM key
    - `CORS_ORIGINS` = your GitHub Pages origin, e.g.
      `https://<your-username>.github.io` (no trailing path — CORS only checks
-     scheme + host + port, so the `/personal-finance-coach/` subpath doesn't matter)
+     scheme + host + port, so the `/delphi/` subpath doesn't matter)
 4. Deploy. The API will be live at `https://<project-name>.vercel.app`.
 5. Set `VITE_API_URL` (in the frontend's GitHub Actions secrets, see the root
    README) to that URL and redeploy the frontend.
